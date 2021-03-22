@@ -1,0 +1,231 @@
+---
+title: "quality control"
+author: "Daniel"
+date: "18.05.2020"
+output: html_document
+---
+
+In this script we perform some basic quality control. We check the cell counts per sample, the marker expression per image, the marker intensities distributions for cells for each image and we calculate dimensionality reductions.
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# set random seed
+set.seed(12345)
+```
+
+# load packages
+
+```{r load packages}
+# load functions written from Nils
+sapply(list.files("~/bbvolume/Git/imcRtools/R/", full.names = TRUE), source)
+library(ggplot2)
+library(ggridges)
+library(SingleCellExperiment)
+library(scater)
+library(viridis)
+library(RColorBrewer)
+library(cowplot)
+library(CATALYST)
+library(bbRtools)
+library(pheatmap)
+```
+
+# load data
+
+```{r load data}
+sce <- readRDS(file =  "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds")
+
+# load the image level metadata
+image_mat <- as.data.frame(read.csv(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/Image.csv",stringsAsFactors = FALSE))
+```
+
+# transform the data
+
+# basic stats on the images
+
+```{r cell counts over samples}
+# this function takes all the column metadata from the sce and plots parts thereof
+plotCellCounts(sce, colour_by = "sample", split_by = "sample")
+```
+
+```{r remove certain images}
+# Cov_1_bottom and MDR_1_rigtside are smaller than other images and are duplicates we will remove them from the further analysis to have consistenly 1 mm2 images per patient.
+sce <- sce[,! sce$sample %in% c("Cov_1_bottom","MDR_1_rightside")]
+```
+
+
+# mean intensity of markers per image
+
+```{r mean marker intensities over images}
+# we use a function from Nils. This function makes use of the aggregate function to calculate the mean for each channel over all specified groups
+mean_sce <- calculateSummary(sce, split_by = c("sample","sample_type"), exprs_values = "counts")
+``` 
+
+# transform data
+
+```{r transform mean data}
+assay(mean_sce, "asinh") <- asinh(assay(mean_sce, "meanCounts"))
+assay(mean_sce, "asinh_scaled") <- t(scale(t(asinh(assay(mean_sce, "meanCounts")))))
+```
+
+# plot the mean data
+
+```{r  mean per image, fig.height= 10, fig.width=15}
+# first we define a vector of markers that we want to plot
+plot_targets <- rownames(sce)
+plot_targets <- plot_targets[! plot_targets %in% c("DNA1","DNA2","HistoneH3")]
+
+# now we plot the heatmap
+plotHeatmap(mean_sce,features = plot_targets  ,exprs_values = "asinh",colour_columns_by = c("sample","sample_type"),color = viridis(100))
+```
+
+```{r mean per image scaled, fig.height=10, fig.width=15}
+# now we plot the scaled heatmap
+plotHeatmap(mean_sce,features = plot_targets, exprs_values = "asinh_scaled", colour_columns_by = c("sample","sample_type"), zlim = c(-3,3),
+            color = colorRampPalette(c("dark blue", "white", "dark red"))(100))
+```
+
+#  cell level quality control
+here we plot the marker intensity distributions for all images. since we have too many images we make groups of 10.
+
+```{r density plots, fig.height= 10, fig.width=15}
+# now we use the function written by Nils
+plotDist(sce, plot_type = "ridges", 
+         colour_by = "sample", split_by = "rows", 
+         exprs_values = "asinh") + 
+  theme_minimal(base_size = 15)
+ # the distributions look very even across images indicating that we have no major batch effects.
+
+```
+## define markers which had poor staining
+
+```{r define good markers}
+rowData(sce)$good_marker <- ! grepl( "DNA|Histone",rownames(sce))
+```
+
+
+# quality control via tsne
+
+```{r tsne}
+set.seed(12345)
+
+# define markers that the tsne should be calculated on
+channels_for_tsne <- rownames(sce[!grepl("DNA|Histone", rownames(sce))])
+
+sce <- runTSNE(sce,exprs_values = "asinh",feature_set = channels_for_tsne,external_neighbors = TRUE)
+
+```
+
+```{r visualize tsne, fig.width= 20, fig.height= 20}
+# Select plots in list
+p.list <- list()
+
+# SlideID, SampleID, ROI, Indication
+p.list$sample <- plotTSNE(sce, colour_by = "sample", point_size = 0.75)
+p.list$sample_type <- plotTSNE(sce, colour_by = "sample_type", point_size = 0.75)
+
+plot_grid(plotlist = p.list, ncol = 2)
+```
+
+```{r arcsinh expression tsne, fig.width=35, fig.height=25}
+p.list <- list()
+for(i in rownames(sce)){
+  p.list[[i]] <- plotTSNE(sce, colour_by = i, by_exprs_values = "asinh", 
+                          point_size = 0.5, point_alpha = 1)
+}
+
+plot_grid(plotlist = p.list, ncol = 7)
+```
+
+```{r arcsinh expression tnse scaled, fig.width=35, fig.height=25}
+assay(sce, "asinh_scaled") <- t(scale(t(assay(sce, "asinh"))))
+
+p.list <- list()
+for(i in rownames(sce)){
+  p.list[[i]] <- plotTSNE(sce, colour_by = i, by_exprs_values = "asinh_scaled", 
+                          point_size =0.5, point_alpha = 1) +
+    scale_fill_gradient2(name = i, low = "#2166ac", mid = "white", high = "#b2182b")
+}
+
+plot_grid(plotlist = p.list, ncol = 7)
+
+```
+
+
+```{r arcsinh expression tsne scaled censored 99percent, fig.width=25, fig.height=15, message = FALSE}
+
+assay(sce,"censored_99") <- t(apply(t(assay(sce,"asinh")), 2,function(x){censor_dat(x,0.99,symmetric = FALSE)}))
+
+p.list <- list()
+for(i in rownames(sce)){
+  p.list[[i]] <- plotTSNE(sce, colour_by = i, by_exprs_values = "censored_99", 
+                          point_size =1, point_alpha = 1) +
+    scale_fill_gradient2(name = i, low = "#2166ac", mid = "white", high = "#b2182b")
+}
+
+plot_grid(plotlist = p.list, ncol = 7)
+
+```
+
+
+```{r UMAP}
+channels_for_UMAP <- c("CD3","CD4","CD8","CD11c","CD20","CD31","CD68","CD163","CD303","Langerin","E-cad","DC_LAMP","SMA","HLADR","MPO")
+
+sce <- runUMAP(sce,subset_row = channels_for_UMAP,name = "UMAP",exprs_values = "asinh")
+```
+
+```{r plot UMAP, fig.height=10,fig.width=12}
+plotUMAP(sce,colour_by = "sample_type")
+```
+
+```{r UMAP by marker expression, fig.height=35,fig.width=25, message = FALSE}
+p.list <- list()
+for(i in channels_for_UMAP){
+  p.list[[i]] <- plotUMAP(sce, colour_by = i, by_exprs_values = "asinh", 
+                          point_size = 0.5, point_alpha = 1)+
+    scale_fill_gradient2(name = i, low = "#2166ac", mid = "white", high = "#b2182b")
+}
+
+plot_grid(plotlist = p.list, ncol = 4)
+```
+
+```{r UMAP by marker expression scaled, fig.height=30,fig.width=25}
+p.list <- list()
+for(i in channels_for_UMAP){
+  p.list[[i]] <- plotUMAP(sce, colour_by = i, by_exprs_values = "censored_99", 
+                          point_size = 1, point_alpha = 1)+
+    scale_fill_gradient2(name = i, low = "#2166ac", mid = "white", high = "#b2182b")
+}
+
+plot_grid(plotlist = p.list, ncol = 4)
+```
+
+
+```{r save updated sce file}
+
+saveRDS(sce, file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

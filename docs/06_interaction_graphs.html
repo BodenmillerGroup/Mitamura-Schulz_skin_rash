@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="daniels" />
+
+
+<title>cellular interactions</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/anchor-sections-1.0/anchor-sections.css" rel="stylesheet" />
+<script src="site_libs/anchor-sections-1.0/anchor-sections.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Mitamura_Schulz Covid skin rash</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="01_read_data.html">Read data</a>
+</li>
+<li>
+  <a href="02_quality_control.html">Quality control</a>
+</li>
+<li>
+  <a href="03_celltype_labelling_shiny.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="04_celltype_classification.html">Cell type classification</a>
+</li>
+<li>
+  <a href="05_fig_for_publication.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="06_interaction_graphs.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="07_cytomapper_images.html">Celltype annotation</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">cellular interactions</h1>
+<h4 class="author">daniels</h4>
+<h4 class="date">19 5 2020</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-03-22
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>Mitamura_Schulz/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210322code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210322)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210322code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210322)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomBodenmillerGroupMitamuraSchulztreee1068c92d6ec9e3d01046ae4b6a6780ce74f7b2ftargetblanke1068c9a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz/tree/e1068c92d6ec9e3d01046ae4b6a6780ce74f7b2f" target="_blank">e1068c9</a> </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomBodenmillerGroupMitamuraSchulztreee1068c92d6ec9e3d01046ae4b6a6780ce74f7b2ftargetblanke1068c9a" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz/tree/e1068c92d6ec9e3d01046ae4b6a6780ce74f7b2f" target="_blank">e1068c9</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    pre_processing/
+
+Untracked files:
+    Untracked:  Mitamura_Schulz.Rproj
+    Untracked:  analysis/
+    Untracked:  code/
+    Untracked:  data/
+    Untracked:  output/
+
+Unstaged changes:
+    Deleted:    R/Mitamura_Schulz.Rproj
+    Deleted:    R/analysis/01_read_data.Rmd
+    Deleted:    R/analysis/02_quality_control.Rmd
+    Deleted:    R/analysis/03_celltype_images_cytoMapper.Rmd
+    Deleted:    R/analysis/04_celltype_classification_20210211.rmd
+    Deleted:    R/analysis/05_fig_for_publication_20210211.Rmd
+    Deleted:    R/analysis/06_interaction_graphs20210211.Rmd
+    Deleted:    R/analysis/_site.yml
+    Deleted:    R/analysis/index.Rmd
+    Deleted:    R/code/README.md
+    Deleted:    R/data/README.md
+    Deleted:    R/docs/.nojekyll
+    Deleted:    R/output/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<p>here we use the interaction counts as calculated by CellProfiler to plot the interactions amongst cell types in the different indications.</p>
+<p>CellProfiler counts interactions between cells when they are maximally 8 pixels apart from each other. The data is then outputted in a “relationship” table which lists the IDs of cells and all IDs of cells neighbouring a cell.</p>
+<div id="load-packages" class="section level2">
+<h2>load packages</h2>
+<pre><code>        /home/ubuntu/bbvolume/Git/imcRtools/R//calculateSummary.R
+value   ?                                                        
+visible FALSE                                                    
+        /home/ubuntu/bbvolume/Git/imcRtools/R//plotCellCounts.R
+value   ?                                                      
+visible FALSE                                                  
+        /home/ubuntu/bbvolume/Git/imcRtools/R//plotDist.R
+value   ?                                                
+visible FALSE                                            
+        /home/ubuntu/bbvolume/Git/imcRtools/R//sceChecks.R
+value   ?                                                 
+visible FALSE                                             
+        /home/ubuntu/bbvolume/Git/imcRtools/R//validityChecks.R
+value   ?                                                      
+visible FALSE                                                  </code></pre>
+</div>
+<div id="load-data" class="section level1">
+<h1>load data</h1>
+<pre class="r"><code>fn_cells &lt;- &quot;~/bbvolume/Data/Dermatology/covid_skin_rash//processed/cpout/cell.csv&quot;
+
+fn_relationship &lt;- &quot;~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/Object relationships.csv&quot;</code></pre>
+<pre class="r"><code>sce = readRDS(file = &quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds&quot;)
+
+dat_relation &lt;- fread(fn_relationship)
+
+sce[,sce$sample == &quot;MDR_1_lefstide&quot;]$sample &lt;- &quot;MDR_1&quot;
+sce[,sce$sample == &quot;Cov_1_top&quot;]$sample &lt;- &quot;Cov_1&quot;
+
+sce &lt;- sce[,! sce$sample %in% c(&quot;DRESS_4&quot;,&quot;NHS_1&quot;)]</code></pre>
+<div id="choord-plots-per-image" class="section level2">
+<h2>Choord plots per image</h2>
+<p>here we use choord plots to display the interaction counts among cell-types in individual images</p>
+<pre class="r"><code>pdf(&quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_all_samples.pdf&quot;,width = 20,height = 20)
+
+layout(matrix(c(1:4,c(5:7,7),c(8,9,10,11),c(12,13,14,14)),byrow = TRUE,nc=4))
+
+#layout(matrix(1:16,nc=4,byrow=TRUE))
+
+for (i in unique(sce$ImageNumber)){
+
+  cur_sce &lt;- sce[,sce$ImageNumber == i]
+  
+  title_name &lt;- unique(cur_sce$sample)
+
+  celltype_dat_First &lt;- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second &lt;- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+
+
+  cur_dat_relation &lt;- as.data.frame(dat_relation) %&gt;%
+    filter(`First Image Number` == i) %&gt;%
+    select(&quot;First Object Number&quot; ,&quot;Second Object Number&quot;) %&gt;%
+    mutate(FirstObjectNumber = paste0(i,&quot;_&quot;,`First Object Number`),SecondObjectNumber = paste0(i,&quot;_&quot;,`Second Object Number`)) %&gt;%
+    select(3:4)
+
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y=celltype_dat_First,by=&quot;FirstObjectNumber&quot;,copy=TRUE)
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y= celltype_dat_Second,by=&quot;SecondObjectNumber&quot;,copy=TRUE)
+  
+  adj_list &lt;- cur_dat_relation %&gt;%
+    select(3:4) %&gt;%
+    filter(celltype.x != &quot;Keratinocyte1&quot;, celltype.y != &quot;Keratinocyte1&quot;) %&gt;%
+    dplyr::count(celltype.x,celltype.y)
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = &quot;grid&quot;, 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = &quot;top&quot;, labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data(&quot;xlim&quot;)
+    ylim = get.cell.meta.data(&quot;ylim&quot;)
+    sector.name = get.cell.meta.data(&quot;sector.index&quot;)
+    xplot = get.cell.meta.data(&quot;xplot&quot;)
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = &quot;clockwise&quot;, niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix &lt;- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()</code></pre>
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div id="chorddiagrams-per-indication" class="section level2">
+<h2>chordDiagrams per indication</h2>
+<pre class="r"><code>pdf(&quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication.pdf&quot;,width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce &lt;- sce[,sce$sample_type == i]
+  
+  title_name &lt;- unique(cur_sce$sample_type)
+
+  celltype_dat_First &lt;- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second &lt;- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image &lt;- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation &lt;- as.data.frame(dat_relation) %&gt;%
+    filter(`First Image Number` %in% sample_type_image) %&gt;%
+    select(&quot;First Object Number&quot; ,&quot;Second Object Number&quot;, &quot;First Image Number&quot;) %&gt;%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`Second Object Number`)) %&gt;%
+    select(4:5)
+
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y=celltype_dat_First,by=&quot;FirstObjectNumber&quot;,copy=TRUE)
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y= celltype_dat_Second,by=&quot;SecondObjectNumber&quot;,copy=TRUE)
+  
+  adj_list &lt;- cur_dat_relation %&gt;%
+    select(3:4) %&gt;%
+    filter(celltype.x != &quot;Keratinocyte1&quot;, celltype.y != &quot;Keratinocyte1&quot;) %&gt;%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = &quot;grid&quot;, 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = &quot;top&quot;, labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data(&quot;xlim&quot;)
+    ylim = get.cell.meta.data(&quot;ylim&quot;)
+    sector.name = get.cell.meta.data(&quot;sector.index&quot;)
+    xplot = get.cell.meta.data(&quot;xplot&quot;)
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = &quot;clockwise&quot;, niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix &lt;- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()</code></pre>
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div id="chorddiagrams-per-indication-for-all-celltypes" class="section level2">
+<h2>chordDiagrams per indication for all celltypes</h2>
+<pre class="r"><code>pdf(&quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication_all_celltypes.pdf&quot;,width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce &lt;- sce[,sce$sample_type == i]
+  
+  title_name &lt;- unique(cur_sce$sample_type)
+
+  celltype_dat_First &lt;- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second &lt;- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image &lt;- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation &lt;- as.data.frame(dat_relation) %&gt;%
+    filter(`First Image Number` %in% sample_type_image) %&gt;%
+    select(&quot;First Object Number&quot; ,&quot;Second Object Number&quot;, &quot;First Image Number&quot;) %&gt;%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`Second Object Number`)) %&gt;%
+    select(4:5)
+
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y=celltype_dat_First,by=&quot;FirstObjectNumber&quot;,copy=TRUE)
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y= celltype_dat_Second,by=&quot;SecondObjectNumber&quot;,copy=TRUE)
+  
+  adj_list &lt;- cur_dat_relation %&gt;%
+    select(3:4) %&gt;%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = &quot;grid&quot;, 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = &quot;top&quot;, labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data(&quot;xlim&quot;)
+    ylim = get.cell.meta.data(&quot;ylim&quot;)
+    sector.name = get.cell.meta.data(&quot;sector.index&quot;)
+    xplot = get.cell.meta.data(&quot;xplot&quot;)
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = &quot;clockwise&quot;, niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix &lt;- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()</code></pre>
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div id="chorddiagrams-per-indication-without-outlier-samples" class="section level2">
+<h2>chordDiagrams per indication without outlier samples</h2>
+<pre class="r"><code>sce &lt;- sce[,! sce$sample %in% c(&quot;DRESS_4&quot;,&quot;NHS_1&quot;, &quot;Cov_1&quot;,&quot;MDR_1&quot;)]
+
+pdf(&quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication_no_outliers.pdf&quot;,width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce &lt;- sce[,sce$sample_type == i]
+  
+  title_name &lt;- unique(cur_sce$sample_type)
+
+  celltype_dat_First &lt;- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second &lt;- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image &lt;- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation &lt;- as.data.frame(dat_relation) %&gt;%
+    filter(`First Image Number` %in% sample_type_image) %&gt;%
+    select(&quot;First Object Number&quot; ,&quot;Second Object Number&quot;, &quot;First Image Number&quot;) %&gt;%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,&quot;_&quot;,`Second Object Number`)) %&gt;%
+    select(4:5)
+
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y=celltype_dat_First,by=&quot;FirstObjectNumber&quot;,copy=TRUE)
+  cur_dat_relation &lt;- left_join(x=cur_dat_relation,y= celltype_dat_Second,by=&quot;SecondObjectNumber&quot;,copy=TRUE)
+  
+  adj_list &lt;- cur_dat_relation %&gt;%
+    select(3:4) %&gt;%
+    filter(celltype.x != &quot;Keratinocyte1&quot;, celltype.y != &quot;Keratinocyte1&quot;) %&gt;%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = &quot;grid&quot;, 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = &quot;top&quot;, labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data(&quot;xlim&quot;)
+    ylim = get.cell.meta.data(&quot;ylim&quot;)
+    sector.name = get.cell.meta.data(&quot;sector.index&quot;)
+    xplot = get.cell.meta.data(&quot;xplot&quot;)
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = &quot;clockwise&quot;, niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix &lt;- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()</code></pre>
+<pre><code>png 
+  2 </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 18.04.4 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] circlize_0.4.11             igraph_1.2.6               
+ [3] RColorBrewer_1.1-2          neighbouRhood_0.3.0        
+ [5] bbRtools_0.6.1              Rphenograph_0.99.1.9001    
+ [7] ggplot2_3.3.2               SingleCellExperiment_1.12.0
+ [9] SummarizedExperiment_1.20.0 Biobase_2.50.0             
+[11] GenomicRanges_1.42.0        GenomeInfoDb_1.26.1        
+[13] IRanges_2.24.0              S4Vectors_0.28.0           
+[15] BiocGenerics_0.36.0         MatrixGenerics_1.2.0       
+[17] matrixStats_0.57.0          gplots_3.1.1               
+[19] dtplyr_1.0.1                magrittr_2.0.1             
+[21] dplyr_1.0.2                 data.table_1.13.2          
+[23] LSD_4.1-0                   workflowr_1.6.2            
+
+loaded via a namespace (and not attached):
+ [1] tsne_0.1-3                  ncdfFlow_2.36.0            
+ [3] bitops_1.0-6                fs_1.5.0                   
+ [5] httr_1.4.2                  rprojroot_2.0.2            
+ [7] Rgraphviz_2.34.0            tools_4.0.2                
+ [9] R6_2.5.0                    KernSmooth_2.23-18         
+[11] colorspace_2.0-0            flowWorkspace_4.2.0        
+[13] withr_2.3.0                 gridExtra_2.3              
+[15] tidyselect_1.1.0            curl_4.3                   
+[17] compiler_4.0.2              git2r_0.27.1               
+[19] graph_1.68.0                ggcyto_1.18.0              
+[21] xml2_1.3.2                  DelayedArray_0.16.0        
+[23] caTools_1.18.0              scales_1.1.1               
+[25] hexbin_1.28.1               RBGL_1.66.0                
+[27] stringr_1.4.0               digest_0.6.27              
+[29] rmarkdown_2.5               XVector_0.30.0             
+[31] jpeg_0.1-8.1                base64enc_0.1-3            
+[33] pkgconfig_2.0.3             htmltools_0.5.0            
+[35] GlobalOptions_0.1.2         rlang_0.4.9                
+[37] rstudioapi_0.13             flowCore_2.2.0             
+[39] shape_1.4.5                 generics_0.1.0             
+[41] jsonlite_1.7.1              gtools_3.8.2               
+[43] Rtsne.multicore_0.0.99      RCurl_1.98-1.2             
+[45] GenomeInfoDbData_1.2.4      RProtoBufLib_2.2.0         
+[47] Matrix_1.2-18               Rcpp_1.0.5                 
+[49] munsell_0.5.0               lifecycle_0.2.0            
+[51] stringi_1.5.3               yaml_2.2.1                 
+[53] zlibbioc_1.36.0             Rtsne_0.15                 
+[55] plyr_1.8.6                  grid_4.0.2                 
+[57] promises_1.1.1              crayon_1.3.4               
+[59] lattice_0.20-41             knitr_1.30                 
+[61] pillar_1.4.7                XML_3.99-0.5               
+[63] glue_1.4.2                  evaluate_0.14              
+[65] latticeExtra_0.6-29         RcppParallel_5.0.2         
+[67] png_0.1-7                   vctrs_0.3.5                
+[69] httpuv_1.5.4                gtable_0.3.0               
+[71] aws.s3_0.3.21               RANN_2.6.1                 
+[73] purrr_0.3.4                 xfun_0.19                  
+[75] ConsensusClusterPlus_1.54.0 largeVis_0.2.2             
+[77] later_1.1.0.1               tibble_3.0.4               
+[79] FlowSOM_1.22.0              cytolib_2.2.0              
+[81] aws.signature_0.6.0         cluster_2.1.0              
+[83] CytoML_2.2.1                ellipsis_0.3.1             </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

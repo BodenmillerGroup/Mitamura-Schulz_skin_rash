@@ -1,0 +1,30 @@
+name: "Mitamura_Schulz"
+output_dir: ../docs
+navbar:
+  title: "Mitamura_Schulz Covid skin rash"
+  left:
+  - text: Home
+    href: index.html
+  - text: Read data
+    href: 01_read_data.html
+  - text: Quality control
+    href: 02_quality_control.html
+  - text: Celltype annotation 
+    href: 03_celltype_labelling_shiny.html
+  - text: Cell type classification 
+    href: 04_celltype_classification.html
+  - text: Plots 
+    href: 05_fig_for_publication.html
+  - text: Cell cell interactions 
+    href: 06_interaction_graphs.html
+  - text: images 
+    href: 07_cytomapper_images.html
+  right:
+  - icon: fa-github fa-lg
+    href: https://github.com/BodenmillerGroup/Mitamura_Schulz
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    theme: cosmo
+    highlight: textmate

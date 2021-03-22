@@ -1,0 +1,468 @@
+---
+title: "CLA subtypes"
+author: "daniels"
+date: "7 9 2020"
+output: html_document
+---
+
+This script generates the plots for figures figures 2, 3 and supplementary 3 in Mitamura, Schulz et al.
+Also generates some additional plots.
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load packages
+
+```{r load packages, echo=FALSE, message = FALSE}
+#sapply(list.files("~/bbvolume/Git/imcRtools/R/", full.names = TRUE), source)
+#sapply(list.files("~/bbvolume/Git/ZTMA256_protein_data/code/helper_functions/", full.names = TRUE), source)
+
+library(LSD)
+library(SingleCellExperiment)
+library(ggplot2)
+library(scater)
+library(viridis)
+library(Rphenograph)
+library(igraph)
+library(CATALYST)
+library(data.table)
+library(tidyverse)
+library(dittoSeq)
+library(tidyverse)
+library(cowplot)
+library(ComplexHeatmap)
+library(ggpubr)
+library(circlize)
+```
+
+
+```{r helper functions }
+plotCellFracGroups <- function(x,CellClass,color_by) {
+  # check if x is SingleCellExperiment
+  
+  if (is.null(CellClass)) {
+    stop("Provide Cell class from column metadata")
+  }
+
+
+  # check if selected variables exist
+  entries <- colnames(colData(x))
+  if (! is.null(CellClass)) {
+    if (! CellClass %in% entries) {
+      stop("The entry for CellClass is not a colData slot of the object.")
+    }
+  }
+
+  # check if color_by does not exceed the number of images
+  if (! is.null(color_by)) {
+    if (! color_by %in% entries) {
+      stop("The entry for color_by is not a colData slot of the object.")
+    }
+    if (length(unique(colData(x)[,color_by])) > length(unique(x$ImageNumber))) {
+      stop("Number of colors selected not supported")
+      }
+  }
+
+
+  # create the data for plotting
+  cur_df <- data.frame( "ImageNumber" = as.factor(colData(x)[,"ImageNumber"]))
+
+  cur_df$CellClass <- as.factor(colData(x)[,CellClass])
+
+
+
+    cur_df$color_by <- as.factor(colData(x)[,color_by])
+
+    sum_df <- reshape2::dcast(cur_df, ImageNumber + color_by ~ CellClass, length)
+
+    # calculate the fractions for each cell type if color_by is not given
+    sum_df <- cbind(sum_df[c("ImageNumber", "color_by")],sum_df[-which(colnames(sum_df) %in% c("ImageNumber", "color_by"))]/rowSums(sum_df[-which(colnames(sum_df) %in% c("ImageNumber", "color_by"))]))
+
+    # melt data for plotting
+    frac_df <- reshape2::melt(sum_df,id.vars = c("ImageNumber", "color_by"),variable.name = CellClass)
+
+    colnames(frac_df) <- c("ImageNumber", color_by , CellClass , "value")
+
+    # plot data
+    ggplot(frac_df) +
+      geom_boxplot(aes_string(x=CellClass,y="value", fill=color_by),position=position_dodge(width=1)) +
+      geom_jitter(aes_string(x=CellClass,y="value", fill=color_by),position = position_dodge(width = 1),lwd=0.4) +
+      theme_bw()+
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      ylab("Fraction of celltype per Image")
+
+
+}
+
+scatter_x_y <- function(input_data,x,y,imagenumber,xlim,ylim, select_assay ="asinh"){
+  if (is.null(select_assay)) {
+    heatscatter(as.vector(t(assay(input_data[rownames(input_data) == x,input_data$ImageNumber == imagenumber],"asinh"))),as.vector(t(assay(input_data[rownames(input_data) == y,input_data$ImageNumber == imagenumber],"asinh"))),
+                xlab = paste("Imagenumber:",imagenumber , "Marker:" , x, sep = " "),
+                ylab = y,
+                xlim = xlim,
+                ylim = ylim,
+                main=(paste("Image number:", imagenumber,sep =" ")),
+                cor = TRUE,
+                method = "spearman")
+  } else {heatscatter(as.vector(t(assay(input_data[rownames(input_data) == x,input_data$ImageNumber == imagenumber],select_assay))),as.vector(t(assay(input_data[rownames(input_data) == y,input_data$ImageNumber == imagenumber],select_assay))),
+                        xlab = paste("Imagenumber:",imagenumber , "Marker:" , x, sep = " "),
+                        ylab = y,
+                        xlim = xlim,
+                        ylim = ylim,
+                        main=(paste("Image number:", imagenumber,sep =" ")),
+                        cor = TRUE,
+                        method = "spearman")
+      }
+
+}
+```
+
+
+# load data
+
+```{r load data}
+sce = readRDS(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds")
+
+# here we exclude two samples from the downstream analysis. DRESS_4 is characterized by very thick layer of keratinocytes and does not contain any dermis. NHS_1 is a HC samples that contains my T cells and was a normal control sample that was taken to close to an area of disease.
+sce <- sce[,! sce$sample %in% c("DRESS_4","NHS_1")]
+
+colour_vector <- metadata(sce)$colour_vector$layer_1
+
+image_mat <- as.data.frame(read.csv(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/Image.csv",stringsAsFactors = FALSE))
+
+sample_colors <- c("#F8766D", "#7CAE00","#00BFC4","#C77CFF")
+names(sample_colors) <- c("Cov","DRESS","MDR","NHS")
+```
+
+# rename samples
+
+```{r}
+sce[,sce$sample == "MDR_1_lefstide"]$sample <- "MDR_1"
+sce[,sce$sample == "Cov_1_top"]$sample <- "Cov_1"
+```
+
+```{r, fig.height=10,fig.width=10}
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/cellfractions_classified.pdf",height = 10,width = 15)
+plotCellFracGroups(sce,CellClass = "celltype_classified",color_by = "sample_type")
+dev.off()
+```
+
+```{r}
+cur_df <- data.frame(ImageNumber = sce$ImageNumber,
+                     celltype = sce$celltype_classified,
+                     sample = sce$sample,
+                     sample_type = sce$sample_type)
+
+cur_df <- reshape2::dcast(data = cur_df,formula = "ImageNumber + sample + sample_type   ~ celltype")
+
+# calculate the fracions of each celltype per image
+freqs_wide <- as.data.frame(t(scale(t(as.matrix(cur_df[,-c(1,2,3)])), center = FALSE, 
+               scale = rowSums(cur_df[,-c(1,2,3)]))))
+
+freqs_wide$ImageNumber <- cur_df$ImageNumber
+freqs_wide$sample <- cur_df$sample
+freqs_wide$sample_type <- cur_df$sample_type
+freqs_wide$celltype <- cur_df$celltype
+
+freqs_long <- reshape2::melt(freqs_wide,id.vars = c("ImageNumber","sample", "sample_type"),measure.vars=unique(sce$celltype_classified))
+
+freqs_long$celltype <- sapply(as.vector(freqs_long$variable),function(x){strsplit(x,"_",)[[1]][1]})
+```
+
+
+```{r}
+immune_celltypes <- c("Tcytotoxic","Thelper","Macrophages","Neutrophil","pDC","Bcell","Langerhans", "TcytotoxicMyeloid","ThelperMyeloid")
+
+vasculature_cells <- "Vasculature"
+```
+
+
+```{r T cytotoxic cluster fractions per sample_type, fig.height=16,fig.width=10}
+
+immune_celltype_fractions <- freqs_long %>%
+  filter(celltype %in%  immune_celltypes) %>%
+  arrange(celltype) %>%
+  ggplot()+
+  geom_boxplot(aes(x=celltype,y=value, fill=sample_type))+
+  geom_jitter(aes(x=celltype,y=value, fill=sample_type), position = position_jitterdodge(0.05), lwd=0.6)+
+  theme(axis.text.x = element_text(angle=90))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90))
+
+pdf(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/cellfractions_classified_immune.pdf",width = 12,height = 10)
+immune_celltype_fractions
+dev.off()
+```
+
+```{r, fig.height=8,fig.width=10}
+celltype_fractions_all <- freqs_long %>%
+  arrange(celltype) %>%
+  ggplot()+
+  geom_boxplot(aes(x=celltype,y=value, fill=sample_type))+
+  geom_jitter(aes(x=celltype,y=value, fill=sample_type), position = position_jitterdodge(0.05), lwd=0.6)+
+  theme(axis.text.x = element_text(angle=90))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90))+
+  scale_fill_manual(values = sample_colors)
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/celltype_fractions_all.pdf", width = 12, height = 8)
+celltype_fractions_all
+dev.off()
+```
+
+
+
+## clustered celltypes classified boxplot per celltype
+
+```{r generate celltype cluster fractions, message=FALSE}
+# calculate the fractions of all celltype
+cur_df <- data.frame(ImageNumber = sce$ImageNumber,
+                     celltype_clustering_FS = sce$celltype_classified_clustering_FS,
+                     celltype = sce$celltype_classified,
+                     sample = sce$sample,
+                     sample_type = sce$sample_type)
+
+cur_df <- reshape2::dcast(data = cur_df,formula = "ImageNumber + sample + sample_type   ~ celltype_clustering_FS")
+
+# calculate the fracions of each celltype per image
+freqs_wide <- as.data.frame(t(scale(t(as.matrix(cur_df[,-c(1,2,3)])), center = FALSE, 
+               scale = rowSums(cur_df[,-c(1,2,3)]))))
+
+freqs_wide$ImageNumber <- cur_df$ImageNumber
+freqs_wide$sample <- cur_df$sample
+freqs_wide$sample_type <- cur_df$sample_type
+freqs_wide$celltype <- cur_df$celltype
+
+freqs_long <- reshape2::melt(freqs_wide,id.vars = c("ImageNumber","sample", "sample_type"),measure.vars=unique(sce$celltype_classified_clustering_FS), stringAsFactor= FALSE)
+
+freqs_long$celltype <- sapply(as.vector(freqs_long$variable),function(x){strsplit(x,"_",)[[1]][1]})
+freqs_long$cluster <- sapply(as.vector(freqs_long$variable),function(x){strsplit(x,"_",)[[1]][2]})
+
+```
+
+
+```{r clustered celltypes fractions per celltype across indications}
+
+for (i in unique(freqs_long$celltype)) {
+p <- freqs_long %>%
+  filter(celltype == i) %>%
+  arrange(cluster,decreasing = FALSE) %>%
+  mutate(celltype = paste(i,cluster,sep="_")) %>%
+  ggplot()+
+    geom_boxplot(aes(x=celltype,y=value, fill=sample_type))+
+    geom_jitter(aes(x=celltype,y=value, fill=sample_type), position = position_jitterdodge(0.05), lwd=0.6)+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            axis.title.x = element_blank(),
+            panel.background = element_blank(),
+            panel.grid.minor=element_blank(),
+            panel.grid.major.x=element_blank(),
+            panel.grid.major.y=element_line(color="grey", size=.3))+
+  scale_fill_manual(values = sample_colors)
+pdf(file = paste0("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/",i,"_classified_clustered.pdf"))
+print(p)
+dev.off()
+}
+```
+
+```{r significance testing clustered celltypes classified, include=FALSE}
+plot_dat <- freqs_long %>%
+  filter(variable %in%  c("Tcytotoxic_3")) %>%
+  arrange(celltype)
+
+  ggboxplot(plot_dat,x="sample_type",y="value", color = "variable")+
+  theme(axis.text.x = element_text(angle=90))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90))+
+  stat_compare_means(comparisons = list( c("Cov", "DRESS"), c("Cov", "MDR"), c("Cov", "NHS")))
+```
+
+
+## Marker expression of celltypes classified
+
+```{r heatmap marker expresion celltypes classified with annotation, fig.height=12,fig.width=8}
+agr_sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("celltype_classified")], 
+                                statistics = "mean")
+assay(agr_sce, "asinh") <- asinh(counts(agr_sce))
+
+
+plot_mat <- t(scale(t(assay(agr_sce,"asinh"))))
+
+annotation_dat <- DataFrame(celltype = sce$celltype_classified)
+
+annotation_dat <- as.data.frame(table(colData(sce)$celltype_classified))
+  
+
+row_ha = HeatmapAnnotation(size = anno_barplot(annotation_dat$Freq), celltype = annotation_dat$Var1,col=list(celltype = colour_vector))
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/Marker_expression_celltype_classified_heatmap_with_annotation.pdf",width = 10,height = 10)
+Heatmap(plot_mat,top_annotation = row_ha,height = unit(15,"cm"),width = unit(10,"cm"),cluster_columns = FALSE,
+        col = colorRamp2(c(-3, 0, 3), c("dark blue", "white", "dark red")),heatmap_legend_param = list(at = c(-3, 0, 3)))
+dev.off()
+```
+
+## Marker expression of celltypes classified clustered
+
+
+```{r heatmap marker expresion celltypes classified clustered with annotation, fig.height=12,fig.width=12}
+agr_sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("celltype_classified_clustering_FS")], 
+                               statistics = "mean")
+assay(agr_sce, "asinh") <- asinh(counts(agr_sce))
+
+
+plot_mat <- t(scale(t(assay(agr_sce,"asinh"))))
+
+
+annotation_dat <- as.data.frame(table(colData(sce)$celltype_classified_clustering_FS))
+annotation_dat$celltype <- sapply(X =annotation_dat$Var1,FUN = function(X){str_split(X,pattern = "_")[[1]][1]})
+
+row_ha = HeatmapAnnotation(size = anno_barplot(annotation_dat$Freq), celltype = annotation_dat$celltype,col=list(celltype=colour_vector))
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/Marker_expression_celltype_classified_clustered_heatmap_with_annotation.pdf",width = 15,height = 10)
+Heatmap(plot_mat,top_annotation = row_ha,height = unit(15,"cm"),width = unit(20,"cm"),cluster_columns = FALSE,
+        col = colorRamp2(c(-3, 0, 3), c("dark blue", "white", "dark red")),heatmap_legend_param = list(at = c(-3, 0, 3)))
+dev.off()
+```
+
+## Heatmap celltype classified clustered
+
+```{r heatmap marker expresion celltypes classified clustered, fig.height=8,fig.width=12}
+agr_sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("celltype_classified_clustering_FS")], 
+                                statistics = "mean")
+assay(agr_sce, "asinh") <- asinh(counts(agr_sce))
+
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = "asinh",
+            annot.by = c("celltype_classified_clustering_FS"), 
+            order.by = "celltype_classified_clustering_FS", cluster_rows = FALSE,
+            scale = "none", heatmap.colors = viridis(100), 
+            annotation_colors = list(celltype_classified = colour_vector))+theme(legend.position = "bottom")
+
+# Centered and scaled
+p <- dittoHeatmap(agr_sce, assay = "asinh",
+            annot.by = c("celltype_classified"),
+            annotation_colors = list(celltype_classified = colour_vector),
+            heatmap.colors = colorRampPalette(c("dark blue", "white", "dark red"))(100),
+            breaks = seq(-3,3, length.out = 101),show_colnames = TRUE)
+  theme(axis.title.x = element_text("test"))
+
+pdf(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/Marker_expr_heatmap_celltypes_classified_clustered_dittoHeatmap.pdf", width = 15, height = 10)
+p
+dev.off()
+```
+
+
+
+## Marker expression of celltypes classified split by indication
+
+```{r heatmap marker expresion celltypes classified by indication with annotation, fig.height=12,fig.width=12}
+agr_sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("sample_type","celltype_classified")], 
+                                statistics = "mean")
+assay(agr_sce, "asinh") <- asinh(counts(agr_sce))
+
+
+plot_mat <- t(scale(t(assay(agr_sce,"asinh"))))
+colnames(plot_mat) <- paste0(agr_sce$celltype_classified,"_",agr_sce$sample_type)
+
+
+plot_mat <- plot_mat[,order(colnames(plot_mat))]
+
+annotation_dat <- DataFrame(size = agr_sce$ncells,celltype = paste0(agr_sce$celltype_classified,"_",agr_sce$sample_type),sample_type = agr_sce$sample_type,celltype_cols =agr_sce$celltype_classified)
+
+annotation_dat <- annotation_dat[order(annotation_dat$celltype),]
+
+row_ha = HeatmapAnnotation(size = anno_barplot(annotation_dat$size),sample_type = annotation_dat$sample_type,celltype=annotation_dat$celltype_cols,col=list(celltype = colour_vector,sample_type = c("Cov"="#1B9E77","DRESS"="#D95F02","MDR" ="#7570B3", "NHS"= "#E7298A")))
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/Marker_expression_celltype_classified__by_indication_heatmap_with_annotation.pdf",width = 15,height = 10)
+Heatmap(plot_mat,top_annotation = row_ha,height = unit(15,"cm"),width = unit(20,"cm"),cluster_columns = FALSE,
+        col = colorRamp2(c(-3, 0, 3), c("dark blue", "white", "dark red")),heatmap_legend_param = list(at = c(-3, 0, 3)))
+dev.off()
+```
+
+```{r heatmap marker expresion celltypes classified by sample_type, fig.height=8,fig.width=10}
+agr_sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("sample_type","celltype_classified")], 
+                                statistics = "mean")
+assay(agr_sce, "asinh") <- asinh(counts(agr_sce))
+
+colnames(agr_sce) <- paste0(agr_sce$sample_type, "_", agr_sce$celltype_classified)
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = "asinh",
+            annot.by = c("sample_type","celltype_classified"), 
+            order.by = "celltype_classified", cluster_rows = FALSE,
+            scale = "none", heatmap.colors = viridis(100), 
+            annotation_colors = list(celltype_classified = colour_vector))
+
+# Centered and scaled
+p <- dittoHeatmap(agr_sce, assay = "asinh",
+            annot.by = c("sample_type","celltype_classified"),
+            order.by = "celltype_classified",
+            annotation_colors = list(celltype_classified = colour_vector),
+            heatmap.colors = colorRampPalette(c("dark blue", "white", "dark red"))(100),
+            breaks = seq(-4,4, length.out = 101))
+pdf(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/Marker_expr_heatmap_celltypes_classified_by_indication.pdf", width = 10, height = 8)
+p
+dev.off()
+```
+
+
+```{r UMAP, fig.height=20,fig.width=10}
+p1 <- dittoDimPlot(sce,var = "celltype_classified",color.panel = colour_vector, size = 0.5)
+
+p2 <- dittoDimPlot(sce,var = "sample_type", size = 0.5, color.panel = sample_colors)
+
+UMAP_plot <- plot_grid(p1,p2, ncol=1)
+
+jpeg("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/UMAP.jpeg",width = 2000,height = 3000,units = "px", res = 300)
+plot_grid(p1,p2, ncol=1)
+dev.off()
+```
+
+## Fig. 2
+
+```{r}
+UMAP_plot
+immune_celltype_fractions
+```
+
+```{r significance testing, include=FALSE}
+cur_df <- data.frame(ImageNumber = sce$ImageNumber,
+                     celltype = sce$celltype_classified_clustering_FS,
+                     sample = sce$sample,
+                     sample_type = sce$sample_type)
+
+cur_df <- reshape2::dcast(data = cur_df,formula = "ImageNumber + sample + sample_type   ~ celltype")
+
+# calculate the fracions of each celltype per image
+freqs_wide <- as.data.frame(t(scale(t(as.matrix(cur_df[,-c(1,2,3)])), center = FALSE, 
+               scale = rowSums(cur_df[,-c(1,2,3)]))))
+
+freqs_wide$ImageNumber <- cur_df$ImageNumber
+freqs_wide$sample <- cur_df$sample
+freqs_wide$sample_type <- cur_df$sample_type
+freqs_wide$celltype <- cur_df$celltype
+
+freqs_long <- reshape2::melt(freqs_wide,id.vars = c("ImageNumber","sample", "sample_type"),measure.vars=unique(sce$celltype_classified_clustering_FS))
+
+#freqs_long$celltype <- sapply(as.vector(freqs_long$variable),function(x){strsplit(x,"_",)[[1]][1]})
+
+plot_dat <- freqs_long %>%
+  filter(variable %in%  c("Macrophages_3")) %>%
+  arrange(variable)
+  
+ggboxplot(plot_dat,x="sample_type",y="value")+
+  theme(axis.text.x = element_text(angle=90))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90))+
+  stat_compare_means(comparisons = list( c("Cov", "DRESS"),c("Cov","MDR"), c("Cov", "NHS")))
+
+#
+dat1 <- freqs_long[which(freqs_long$variable == "Macrophages_1" & freqs_long$sample_type == "Cov"),]$value
+
+dat2 <- freqs_long[which(freqs_long$variable == "Macrophages_1" & freqs_long$sample_type == "DRESS"),]$value
+
+t.test(x = dat1,y = dat2)
+  
+```

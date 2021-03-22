@@ -1,0 +1,151 @@
+---
+title: "Read in the data from the skin rash samples"
+author: "Daniel"
+date: "18.05.2020"
+output: html_document
+---
+
+In this script we read the output from the pre-processing/segmentation pipeline and build a SingleCellExperiment object (https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html)
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+
+First, we will load the libraries needed for this part of the analysis.
+
+```{r load-libraries, message=FALSE}
+library(data.table)
+library(S4Vectors)
+library(SingleCellExperiment)
+library(LSD)
+```
+
+# Read the data
+
+```{r load data}
+# load the single cell data
+cells <- as.data.frame(fread(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/cell.csv",stringsAsFactors = FALSE))
+
+#nuclei <- as.data.frame(fread(file = "~/bbvolume/Data/Melanoma/12plex/protein/cpout/nuclei.csv",stringsAsFactors = FALSE))
+
+# load the image level metadata
+image_mat <- as.data.frame(read.csv(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/Image.csv",stringsAsFactors = FALSE))
+
+# load the panel information
+panel_mat <- read.csv(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Skin_panel.csv", sep= ",",  stringsAsFactors = FALSE )
+
+# get an example file that contains the channel order
+tags <- read.csv( "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/tiffs/20200506_DS_Derma_COV_1_2_s1_p12_r1_a1_ac_full.csv", header = FALSE)
+
+# load acqusition meta data
+acquisition_meta <- read.csv(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/acquisition_metadata.csv", stringsAsFactors = FALSE)
+```
+
+# generate the counts data frame
+
+```{r get count data }
+cur_counts <- cells[,grepl("Intensity_MeanIntensity_FullStackFiltered",colnames(cells))]
+```
+
+# get the scaling factor
+the single cell data needs to be multiplied with the scaling factor (16 bit)
+```{r scale the count data}
+cur_counts <- cur_counts * image_mat$Scaling_FullStack[1]
+
+# to order the channels according to channel number
+channelNumber <- as.numeric(sub("^.*_c", "", colnames(cur_counts)))
+
+cur_counts <- cur_counts[,order(channelNumber,decreasing = FALSE)]
+```
+
+# prepare the cell-level metadata
+this data frame contains the metadata for ever single cell and will later on be the colData in the single cell experiment object
+
+the metadata will also have an entry called "Parent_nuclei" which holds information to the ObjectNumber of the Nuclei that the cell was derived from.
+due to the down-scaling of the images some nuclei are lost and thus some cells do not have a Parent_nuclei
+
+```{r column level metadata}
+
+cell_meta <- DataFrame(CellNumber = cells$ObjectNumber,
+                       ImageNumber = cells$ImageNumber,
+                       Center_X = cells$Location_Center_X,
+                       Center_Y = cells$Location_Center_Y,
+                       Area = cells$AreaShape_Area,
+                       MajorAxisLength = cells$AreaShape_MajorAxisLength,
+                       MinorAxisLength = cells$AreaShape_MinorAxisLength,
+                       NumberOfNeighbors = cells$Neighbors_NumberOfNeighbors_8)
+
+
+# add a unique cellID to each cell consisting of "dataset"+"ImageNumber"+"ObjectNumber"
+cell_meta$cellID <- paste0(cell_meta$ImageNumber, "_",cell_meta$CellNumber)
+
+rownames(cell_meta) <- cell_meta$cellID
+```
+
+# prepare the row-level metadata (panel/marker informatino)
+here we prepare all the metadata for the rows in the single cell experiment object (rowData)
+
+```{r row level metadata}
+# the channel numbers are the rownumbers in the "tags" file that we create above
+tags$channel <- as.numeric(rownames(tags))
+colnames(tags) <- c("Metal.Tag","channel")
+
+# include the channel information in the panel metadata (panel_mat)
+panel_mat <- merge(panel_mat,tags,by="Metal.Tag")
+
+# now we order the panel metadata by channel. therefore we first modify the column names
+panel_mat <- panel_mat[order(panel_mat$channel,decreasing = FALSE),]
+
+# we also revise the nomenclature of the clean targets to not contain special characters like "-" etc
+panel_mat$clean_target
+clean_target <- c("HistoneH3", "SMA","CD7", "Filaggrin", "HLADR","CD370", "CD27", "CD16", "CD163", "Langerin", "CD11b", "CD68", "CD31",
+                  "CD3", "DC_LAMP", "CD11c", "CD1c", "CD69", "CD134", "GrzB", "CD45RA", "STING", "CD45RO", "FoxP3", "CD20", "CLA",
+                  "CD8", "CD57", "Ki67", "DP2","CD40", "CD4", "CD14", "E-cad",  "CD303", "CD206", "DNA1", "DNA2", "MPO")
+panel_mat$clean_target <- clean_target
+
+rownames(panel_mat) <- panel_mat$clean_target
+```
+
+# create the single cell experiment object
+
+```{r create single cell object}
+# create the SCE object
+sce <- SingleCellExperiment(assays = list(counts = t(cur_counts)))
+
+# Set marker name as rownames and cellID as colnames
+rownames(sce) <- rownames(panel_mat)
+colnames(sce) <- rownames(cell_meta)
+
+# add the column and row metadata
+colData(sce) <- cell_meta
+rowData(sce) <- panel_mat
+
+# asinh transformed counts as well as add the nuclear count data
+assay(sce, "asinh") <- asinh(counts(sce))
+```
+
+
+## one of the control normal samples was wrongly assigned. It was given the name "NHS_4" but should be "NHS_1". We therefore have "NHS_4" duplicated. We will therefore rename it here manually. The error also becomes visible from the "FileName_CellImage" slot in the "image_mat" object.
+
+```{r add sample information}
+# first we fix the broken filename
+image_mat[which(image_mat$FileName_CellImage == "20200506_DS_Derma_NHS_1_3_s0_p6_r2_a2_ac_ilastik_s2_Probabilities_mask.tiff"),]$Metadata_Description <- "NHS_1"
+
+image_mat[,c("ImageNumber","FileName_CellImage","Metadata_Description")]
+
+# now we add the sample information to the single cell experiment object
+sce$sample <- image_mat$Metadata_Description[sce$ImageNumber]
+
+sce$sample_type <- sapply(as.vector(sce$sample),function(x){strsplit(x,"_",)[[1]][1]})
+sce$sample_number <- sapply(as.vector(sce$sample),function(x){strsplit(x,"_",)[[1]][2]})
+```
+
+
+# save the sce object
+
+```{r save sce object}
+saveRDS(sce,file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds")
+```

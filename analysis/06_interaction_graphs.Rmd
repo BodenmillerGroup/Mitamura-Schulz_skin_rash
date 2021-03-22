@@ -1,0 +1,291 @@
+---
+title: "cellular interactions"
+author: "daniels"
+date: "19 5 2020"
+output: html_document
+---
+
+here we use the interaction counts as calculated by CellProfiler to plot the interactions amongst cell types in the different indications.
+
+CellProfiler counts interactions between cells when they are maximally 8 pixels apart from each other. The data is then outputted in a "relationship" table which lists the IDs of cells and all IDs of cells neighbouring a cell.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+```
+
+## load packages
+
+```{r load packages, echo=FALSE, message = FALSE}
+sapply(list.files("~/bbvolume/Git/imcRtools/R/", full.names = TRUE), source)
+
+library(LSD)
+library(data.table)
+library(dplyr)
+library(magrittr)
+library(dtplyr)
+library(parallel)
+library(gplots)
+library(SingleCellExperiment)
+library(ggplot2)
+library(Rphenograph)
+library(bbRtools)
+library(neighbouRhood)
+library(RColorBrewer)
+library(igraph)
+library(circlize)
+```
+
+# load data
+
+```{r path to data}
+fn_cells <- "~/bbvolume/Data/Dermatology/covid_skin_rash//processed/cpout/cell.csv"
+
+fn_relationship <- "~/bbvolume/Data/Dermatology/covid_skin_rash/processed/cpout/Object relationships.csv"
+```
+
+
+```{r load data}
+sce = readRDS(file = "~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds")
+
+dat_relation <- fread(fn_relationship)
+
+sce[,sce$sample == "MDR_1_lefstide"]$sample <- "MDR_1"
+sce[,sce$sample == "Cov_1_top"]$sample <- "Cov_1"
+
+sce <- sce[,! sce$sample %in% c("DRESS_4","NHS_1")]
+```
+
+## Choord plots per image
+here we use choord plots to display the interaction counts among cell-types in individual images
+
+```{r, fig.height=20, fig.width=20}
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_all_samples.pdf",width = 20,height = 20)
+
+layout(matrix(c(1:4,c(5:7,7),c(8,9,10,11),c(12,13,14,14)),byrow = TRUE,nc=4))
+
+#layout(matrix(1:16,nc=4,byrow=TRUE))
+
+for (i in unique(sce$ImageNumber)){
+
+  cur_sce <- sce[,sce$ImageNumber == i]
+  
+  title_name <- unique(cur_sce$sample)
+
+  celltype_dat_First <- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second <- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+
+
+  cur_dat_relation <- as.data.frame(dat_relation) %>%
+    filter(`First Image Number` == i) %>%
+    select("First Object Number" ,"Second Object Number") %>%
+    mutate(FirstObjectNumber = paste0(i,"_",`First Object Number`),SecondObjectNumber = paste0(i,"_",`Second Object Number`)) %>%
+    select(3:4)
+
+  cur_dat_relation <- left_join(x=cur_dat_relation,y=celltype_dat_First,by="FirstObjectNumber",copy=TRUE)
+  cur_dat_relation <- left_join(x=cur_dat_relation,y= celltype_dat_Second,by="SecondObjectNumber",copy=TRUE)
+  
+  adj_list <- cur_dat_relation %>%
+    select(3:4) %>%
+    filter(celltype.x != "Keratinocyte1", celltype.y != "Keratinocyte1") %>%
+    dplyr::count(celltype.x,celltype.y)
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = "top", labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    xplot = get.cell.meta.data("xplot")
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = "clockwise", niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix <- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()
+
+```
+## chordDiagrams per indication
+
+```{r, fig.height=6, fig.width=25}
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication.pdf",width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce <- sce[,sce$sample_type == i]
+  
+  title_name <- unique(cur_sce$sample_type)
+
+  celltype_dat_First <- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second <- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image <- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation <- as.data.frame(dat_relation) %>%
+    filter(`First Image Number` %in% sample_type_image) %>%
+    select("First Object Number" ,"Second Object Number", "First Image Number") %>%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,"_",`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,"_",`Second Object Number`)) %>%
+    select(4:5)
+
+  cur_dat_relation <- left_join(x=cur_dat_relation,y=celltype_dat_First,by="FirstObjectNumber",copy=TRUE)
+  cur_dat_relation <- left_join(x=cur_dat_relation,y= celltype_dat_Second,by="SecondObjectNumber",copy=TRUE)
+  
+  adj_list <- cur_dat_relation %>%
+    select(3:4) %>%
+    filter(celltype.x != "Keratinocyte1", celltype.y != "Keratinocyte1") %>%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = "top", labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    xplot = get.cell.meta.data("xplot")
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = "clockwise", niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix <- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()
+
+```
+## chordDiagrams per indication for all celltypes
+
+```{r, fig.height=6, fig.width=25}
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication_all_celltypes.pdf",width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce <- sce[,sce$sample_type == i]
+  
+  title_name <- unique(cur_sce$sample_type)
+
+  celltype_dat_First <- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second <- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image <- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation <- as.data.frame(dat_relation) %>%
+    filter(`First Image Number` %in% sample_type_image) %>%
+    select("First Object Number" ,"Second Object Number", "First Image Number") %>%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,"_",`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,"_",`Second Object Number`)) %>%
+    select(4:5)
+
+  cur_dat_relation <- left_join(x=cur_dat_relation,y=celltype_dat_First,by="FirstObjectNumber",copy=TRUE)
+  cur_dat_relation <- left_join(x=cur_dat_relation,y= celltype_dat_Second,by="SecondObjectNumber",copy=TRUE)
+  
+  adj_list <- cur_dat_relation %>%
+    select(3:4) %>%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = "top", labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    xplot = get.cell.meta.data("xplot")
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = "clockwise", niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix <- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()
+
+```
+
+## chordDiagrams per indication without outlier samples
+
+```{r, fig.height=6, fig.width=25}
+sce <- sce[,! sce$sample %in% c("DRESS_4","NHS_1", "Cov_1","MDR_1")]
+
+pdf("~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/plots/chordDiagram_by_indication_no_outliers.pdf",width = 20,height =5.5)
+
+layout(matrix(1:4,1,4))
+
+for (i in unique(sce$sample_type)){
+
+  cur_sce <- sce[,sce$sample_type == i]
+  
+  title_name <- unique(cur_sce$sample_type)
+
+  celltype_dat_First <- DataFrame(FirstObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  celltype_dat_Second <- DataFrame(SecondObjectNumber = cur_sce$cellID,
+                           celltype = cur_sce$celltype_classified)
+  
+  sample_type_image <- unique(cur_sce$ImageNumber)
+
+
+  cur_dat_relation <- as.data.frame(dat_relation) %>%
+    filter(`First Image Number` %in% sample_type_image) %>%
+    select("First Object Number" ,"Second Object Number", "First Image Number") %>%
+    mutate(FirstObjectNumber = paste0(`First Image Number`,"_",`First Object Number`),SecondObjectNumber = paste0(`First Image Number`,"_",`Second Object Number`)) %>%
+    select(4:5)
+
+  cur_dat_relation <- left_join(x=cur_dat_relation,y=celltype_dat_First,by="FirstObjectNumber",copy=TRUE)
+  cur_dat_relation <- left_join(x=cur_dat_relation,y= celltype_dat_Second,by="SecondObjectNumber",copy=TRUE)
+  
+  adj_list <- cur_dat_relation %>%
+    select(3:4) %>%
+    filter(celltype.x != "Keratinocyte1", celltype.y != "Keratinocyte1") %>%
+    dplyr::count(celltype.x,celltype.y)
+
+
+chordDiagram(adj_list, grid.col = metadata(sce)$colour_vectors$layer_1, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list))))))
+for(si in get.all.sector.index()) {
+    circos.axis(h = "top", labels.cex = 0.5, sector.index = si, track.index = 2)
+}
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    xplot = get.cell.meta.data("xplot")
+    
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+          facing = "clockwise", niceFacing = TRUE, adj = c(-0.15, 0.5),cex=1)
+  }, bg.border = NA) # here set bg.border to NA is important
+  title(main = title_name)
+circos.clear()
+}
+#adj_matrix <- ftM2adjM(as.matrix(cur_dat_relation[,1:2]))
+dev.off()
+
+```

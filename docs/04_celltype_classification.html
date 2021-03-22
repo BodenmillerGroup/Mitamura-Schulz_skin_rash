@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="DanielS" />
+
+<meta name="date" content="2020-09-02" />
+
+<title>random_forest_celltype_classification</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/anchor-sections-1.0/anchor-sections.css" rel="stylesheet" />
+<script src="site_libs/anchor-sections-1.0/anchor-sections.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Mitamura_Schulz Covid skin rash</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="01_read_data.html">Read data</a>
+</li>
+<li>
+  <a href="02_quality_control.html">Quality control</a>
+</li>
+<li>
+  <a href="03_celltype_labelling_shiny.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="04_celltype_classification.html">Cell type classification</a>
+</li>
+<li>
+  <a href="05_fig_for_publication.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="06_interaction_graphs.html">Celltype annotation</a>
+</li>
+<li>
+  <a href="07_cytomapper_images.html">Celltype annotation</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">random_forest_celltype_classification</h1>
+<h4 class="author">DanielS</h4>
+<h4 class="date">2020-09-02</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-03-22
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>Mitamura_Schulz/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210322code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210322)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210322code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210322)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomBodenmillerGroupMitamuraSchulztreee1068c92d6ec9e3d01046ae4b6a6780ce74f7b2ftargetblanke1068c9a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz/tree/e1068c92d6ec9e3d01046ae4b6a6780ce74f7b2f" target="_blank">e1068c9</a> </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomBodenmillerGroupMitamuraSchulztreee1068c92d6ec9e3d01046ae4b6a6780ce74f7b2ftargetblanke1068c9a" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version <a href="https://github.com/BodenmillerGroup/Mitamura_Schulz/tree/e1068c92d6ec9e3d01046ae4b6a6780ce74f7b2f" target="_blank">e1068c9</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    pre_processing/
+
+Untracked files:
+    Untracked:  Mitamura_Schulz.Rproj
+    Untracked:  analysis/
+    Untracked:  code/
+    Untracked:  data/
+    Untracked:  output/
+
+Unstaged changes:
+    Deleted:    R/Mitamura_Schulz.Rproj
+    Deleted:    R/analysis/01_read_data.Rmd
+    Deleted:    R/analysis/02_quality_control.Rmd
+    Deleted:    R/analysis/03_celltype_images_cytoMapper.Rmd
+    Deleted:    R/analysis/04_celltype_classification_20210211.rmd
+    Deleted:    R/analysis/05_fig_for_publication_20210211.Rmd
+    Deleted:    R/analysis/06_interaction_graphs20210211.Rmd
+    Deleted:    R/analysis/_site.yml
+    Deleted:    R/analysis/index.Rmd
+    Deleted:    R/code/README.md
+    Deleted:    R/data/README.md
+    Deleted:    R/docs/.nojekyll
+    Deleted:    R/output/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>Manually labelled cells (cytomapper shiny) will be loaded and used to train a random forest classifier. The classifier will then be used to classify all cells into groups of celltypes</p>
+</div>
+<div id="preparations" class="section level1">
+<h1>Preparations</h1>
+<div id="read-in-data" class="section level2">
+<h2>Read in data</h2>
+<p>First, we will read in the SingleCellExperiment object and load all libraries.</p>
+<pre class="r"><code>library(caret)
+library(scater)
+library(tidyverse)
+library(dittoSeq)
+library(viridis)
+library(doParallel)
+library(SingleCellExperiment)
+library(dittoSeq)</code></pre>
+</div>
+<div id="load-data" class="section level2">
+<h2>Load data</h2>
+<pre class="r"><code>sce &lt;- readRDS(&quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds&quot;)
+
+# load all subsetted sce object from hierarchichal gating and combine them
+path = &quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/celltype_annotation/&quot;
+file.names &lt;- dir(path, pattern =&quot;.rds&quot;)
+
+# loop through all files of the first labelling session and combine sce objects
+for(i in 1:length(file.names)){
+  file &lt;- readRDS(paste0(path,file.names[i]))
+  reducedDim(file,&quot;UMAP&quot;) &lt;- NULL
+  assay(file,&quot;exprs&quot;) &lt;- NULL
+  colData(file) &lt;- colData(file)[,c(&quot;ImageNumber&quot;,&quot;cellID&quot;,&quot;cytomapper_CellLabel&quot;)]
+  if (i == 1){
+    labelled_sce &lt;- file
+  }
+  else {
+    labelled_sce &lt;- cbind(labelled_sce, file)
+  }
+}
+
+# a second round of celltype labelling was performed after the first classification round because we noticed that one positive control had higher background for CD8 in the basal epithelial layer and too many CD8 T cells had been assigned.</code></pre>
+</div>
+<div id="duplicates" class="section level2">
+<h2>Duplicates</h2>
+<pre class="r"><code># how many duplicates do we have?
+ncol(labelled_sce[,duplicated(labelled_sce$cellID) == T]) / ncol(labelled_sce[,duplicated(labelled_sce$cellID) == F]) * 100</code></pre>
+<pre><code>[1] 10.3833</code></pre>
+<pre class="r"><code># remove duplicates (more than 1 label per cellID)
+unique_labels &lt;- labelled_sce[,duplicated(labelled_sce$cellID) == F]</code></pre>
+</div>
+<div id="add-labels-to-sce-object" class="section level2">
+<h2>Add labels to SCE object</h2>
+<pre class="r"><code>label_vector &lt;- rep(&quot;unlabelled&quot;, ncol(sce))
+names(label_vector) &lt;- colnames(sce)
+
+# here we add the annotation labels to the cell IDs
+label_vector[colnames(unique_labels)] &lt;- unique_labels$cytomapper_CellLabel
+
+label_vector &lt;- gsub(label_vector,pattern = &quot;_\\d*&quot;,replacement = &quot;&quot;)
+
+# unique cell labels.
+unique(label_vector)</code></pre>
+<pre><code> [1] &quot;unlabelled&quot;             &quot;Other&quot;                  &quot;Keratinocytes&quot;         
+ [4] &quot;Macrophages&quot;            &quot;Vasculature&quot;            &quot;KeratinocytesFilaggrin&quot;
+ [7] &quot;Thelper&quot;                &quot;Langerhans&quot;             &quot;pDC&quot;                   
+[10] &quot;Neutrophil&quot;             &quot;Bcell&quot;                  &quot;Tcytotoxic&quot;            
+[13] &quot;Filaggrin&quot;              &quot;Epithelial&quot;            </code></pre>
+<pre class="r"><code># add to sce
+colData(sce)$layer_1_gated &lt;- label_vector
+
+# now we rename some of the celltypes since we have not consistently labelled the cells
+
+sce[,sce$layer_1_gated == &quot;Epithelial&quot;]$layer_1_gated &lt;- &quot;Keratinocyte1&quot;
+sce[,sce$layer_1_gated == &quot;Keratinocytes&quot;]$layer_1_gated &lt;- &quot;Keratinocyte1&quot;
+sce[,sce$layer_1_gated == &quot;KeratinocytesFilaggrin&quot;]$layer_1_gated &lt;- &quot;Keratinocyte2&quot;
+sce[,sce$layer_1_gated == &quot;Filaggrin&quot;]$layer_1_gated &lt;- &quot;Keratinocyte2&quot;</code></pre>
+</div>
+<div id="create-colour-vector" class="section level2">
+<h2>Create colour vector</h2>
+<p>Here, we will define a colour vector for the cell-types contained in layer 1.</p>
+<pre class="r"><code>layer1_colours &lt;- vector(length = length(unique(sce$layer_1_gated)))
+names(layer1_colours) &lt;- unique(sce$layer_1_gated)
+
+layer1_colours[&quot;pDC&quot;] &lt;- &quot;goldenrod2&quot;
+layer1_colours[&quot;Macrophages&quot;] &lt;- &quot;green1&quot;
+layer1_colours[&quot;Neutrophil&quot;] &lt;- &quot;blue1&quot;
+layer1_colours[&quot;Bcell&quot;] &lt;- &quot;yellow&quot;
+layer1_colours[&quot;Thelper&quot;] &lt;- &quot;lightpink1&quot;
+layer1_colours[&quot;Vasculature&quot;] &lt;- &quot;red2&quot;
+layer1_colours[&quot;Keratinocyte1&quot;] &lt;- &quot;cyan&quot;
+layer1_colours[&quot;Langerhans&quot;] &lt;- &quot;deepskyblue&quot;
+layer1_colours[&quot;Tcytotoxic&quot;] &lt;- &quot;deeppink1&quot;
+layer1_colours[&quot;Other&quot;] &lt;- &quot;sienna4&quot;
+layer1_colours[&quot;unlabelled&quot;] &lt;- &quot;gray&quot;
+layer1_colours[&quot;Keratinocyte2&quot;] &lt;- &quot;aquamarine3&quot;
+
+# Save in SCE object
+metadata(sce)$colour_vectors$layer_1 &lt;- layer1_colours</code></pre>
+</div>
+<div id="quality-control" class="section level2">
+<h2>Quality control</h2>
+<p>In the next step, we will check the quality of the labels by:</p>
+<ol style="list-style-type: decimal">
+<li>checking how many cells contain multiple labels (see chunk 2)</li>
+<li>how many cells of how many images are labeled</li>
+<li>how balanced the classes are</li>
+<li>if the selected cells actually express the markers that they are supposed to express</li>
+</ol>
+<p>Next, we will check how many cells and how many images are labelled.</p>
+<pre class="r"><code># 2. How many cells of how many images are labelled
+
+# Percent cells labelled
+as_tibble(colData(sce)) %&gt;% 
+  summarise(labelled_cells = sum(layer_1_gated != &quot;unlabelled&quot;)/n()) * 100</code></pre>
+<pre><code>  labelled_cells
+1       70.94871</code></pre>
+<pre class="r"><code># Percent images labelled
+as_tibble(colData(sce)) %&gt;% 
+  group_by(ImageNumber) %&gt;%
+  summarise(labelled_cells = sum(layer_1_gated != &quot;unlabelled&quot;)) %&gt;%
+  ungroup() %&gt;%
+  summarise(labelled_images = sum(labelled_cells != 0)/n()) * 100</code></pre>
+<pre><code>  labelled_images
+1             100</code></pre>
+<pre class="r"><code># Percent of cells labelled per image
+as_tibble(colData(sce)) %&gt;% 
+  group_by(ImageNumber) %&gt;%
+  summarise(labelled_cells = sum(layer_1_gated != &quot;unlabelled&quot;)/n(),
+            number_cells = n()) %&gt;%
+  as.data.frame()</code></pre>
+<pre><code>   ImageNumber labelled_cells number_cells
+1            2      0.6879371         1144
+2            3      0.8430805         3454
+3            4      0.6109272         1208
+4            5      0.7053861         1541
+5            6      0.4902216          767
+6            7      0.7130802         1659
+7            8      0.4644745         1703
+8            9      0.9220485         4413
+9           11      0.7239336         1688
+10          12      0.5519453         4678
+11          13      0.6964006         1278
+12          14      0.7316496         2534
+13          15      0.7760067         1192
+14          16      0.6309840         1504
+15          17      0.6066667         1500
+16          18      0.8101591         1949</code></pre>
+<p>We will check how balanced the classes are across the images.</p>
+<pre class="r"><code># Total cells per class
+as_tibble(colData(sce)) %&gt;%
+  group_by(layer_1_gated) %&gt;%
+  summarise(number_cells = n())</code></pre>
+<pre><code># A tibble: 12 x 2
+   layer_1_gated number_cells
+   &lt;chr&gt;                &lt;int&gt;
+ 1 Bcell                   40
+ 2 Keratinocyte1        12188
+ 3 Keratinocyte2         1180
+ 4 Langerhans             489
+ 5 Macrophages           2978
+ 6 Neutrophil            1394
+ 7 Other                 2175
+ 8 pDC                    116
+ 9 Tcytotoxic            1114
+10 Thelper                355
+11 unlabelled            9358
+12 Vasculature            825</code></pre>
+<p>Now, we will check the expression of selected markers across the classes and visualize cell labels on UMAP.</p>
+<pre class="r"><code>lab_sce &lt;- sce[,sce$layer_1_gated != &quot;unlabelled&quot;]
+agr_sce &lt;- aggregateAcrossCells(lab_sce, ids = colData(lab_sce)[,c(&quot;ImageNumber&quot;, &quot;layer_1_gated&quot;)], 
+                                statistics = &quot;mean&quot;)
+
+assay(agr_sce, &quot;asinh&quot;) &lt;- asinh(counts(agr_sce))
+assay(agr_sce, &quot;scaled_asinh&quot;) &lt;- t(scale(t(asinh(counts(agr_sce)))))
+
+colnames(agr_sce) &lt;- paste0(agr_sce$ImageNumber, &quot;_&quot;, agr_sce$layer_1_gated)
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+             cells.use = colnames(agr_sce),
+            annot.by = c(&quot;ImageNumber&quot;, &quot;layer_1_gated&quot;), 
+            order.by = &quot;layer_1_gated&quot;, cluster_rows = FALSE,
+            scale = &quot;none&quot;, heatmap.colors = viridis(100),
+            annotation_colors = list(layer_1_gated = metadata(sce)$colour_vectors$layer_1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/quality-control-4-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Centered and scaled
+dittoHeatmap(agr_sce, assay = &quot;scaled_asinh&quot;,
+            annot.by = c(&quot;ImageNumber&quot;, &quot;layer_1_gated&quot;), 
+            order.by = &quot;layer_1_gated&quot;, cluster_rows = FALSE,
+            annotation_colors = list(layer_1_gated = metadata(sce)$colour_vectors$layer_1),
+            heatmap.colors = colorRampPalette(c(&quot;dark blue&quot;, &quot;white&quot;, &quot;dark red&quot;))(100),
+            breaks = seq(-3, 3, length.out = 101))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/quality-control-4-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>agr_sce &lt;- aggregateAcrossCells(lab_sce, ids = colData(lab_sce)[,c(&quot;layer_1_gated&quot;)], 
+                                statistics = &quot;mean&quot;)
+
+assay(agr_sce, &quot;asinh&quot;) &lt;- asinh(counts(agr_sce))
+assay(agr_sce, &quot;scaled_asinh&quot;) &lt;- t(scale(t(asinh(counts(agr_sce)))))
+
+colnames(agr_sce) &lt;- paste0(agr_sce$ImageNumber, &quot;_&quot;, agr_sce$layer_1_gated)
+
+dittoHeatmap(agr_sce, assay = &quot;scaled_asinh&quot;,
+            annot.by = c( &quot;layer_1_gated&quot;), 
+            order.by = &quot;layer_1_gated&quot;, cluster_rows = TRUE,
+            annotation_colors = list(layer_1_gated = metadata(sce)$colour_vectors$layer_1),
+            heatmap.colors = colorRampPalette(c(&quot;dark blue&quot;, &quot;white&quot;, &quot;dark red&quot;))(100),
+            breaks = seq(-3, 3, length.out = 101))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/quality-control-4-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="random-forrest-training" class="section level1">
+<h1>Random Forrest Training</h1>
+<p>After quality control, we will now use a random forest classifier to classify the remaining cells in the dataset.</p>
+<div id="splitting-by-cell-types" class="section level2">
+<h2>Splitting by cell-types</h2>
+<p>In the first instance, we will split the labelled data based on their cell-types and ignore from which images the calls come. In the current setting most images have been labelled but in the future we want to have a closer look at how well cells of non-labelled images are classified.</p>
+<div id="train-and-validate-the-classifier" class="section level3">
+<h3>Train and validate the classifier</h3>
+<p>We will first split the labelled data into training and test (validation) data at a ratio of 70/30 train/test.</p>
+<pre class="r"><code>set.seed(1234)
+trainIndex &lt;- createDataPartition(factor(lab_sce$layer_1_gated), p = 0.70)
+train_sce &lt;- lab_sce[,trainIndex$Resample1]
+test_sce &lt;- lab_sce[,-trainIndex$Resample1]</code></pre>
+<pre class="r"><code>good_markers &lt;- rownames(sce)
+good_markers &lt;- good_markers[c(2:17,19:29,31,32,34,35,36,39)]</code></pre>
+<p>Here, we will first use a 10-fold crossvalidation by partitioning the data randomly across the full dataset. This process is repeated 5 times. We will also use parallel processing for time reasons. For the <code>randomForrest</code> classifier, we need to tune the <code>mtry</code> parameter - the number of variables sampled for each split.</p>
+<pre class="r"><code># Define seeds for parallel processing
+# Per iteration, we evaluate 10 models while tuning mtry
+set.seed(222)
+seeds &lt;- vector(mode = &quot;list&quot;, length = 11)
+for (i in 1:10) {
+  seeds[[i]] &lt;- sample.int(5000, 10)
+}
+
+seeds[[11]] &lt;- sample.int(5000, 1)
+
+fitControl &lt;- trainControl(method = &quot;repeatedcv&quot;,
+                           repeats = 1,
+                           number = 10,
+                           seeds = seeds)
+
+cl &lt;- makePSOCKcluster(7, setup_strategy = &quot;sequential&quot;)
+registerDoParallel(cl)
+
+set.seed(1234)
+
+start = Sys.time()
+rffit &lt;- train(x = t(assay(train_sce, &quot;asinh&quot;)[rowData(sce)$good_marker,]), 
+               y = factor(train_sce$layer_1_gated),
+               method = &quot;rf&quot;, ntree = 1000,
+               tuneLength = 10,
+               trControl = fitControl)
+stopCluster(cl)
+end = Sys.time()
+print(end-start)</code></pre>
+<pre><code>Time difference of 13.09244 mins</code></pre>
+<pre class="r"><code>rffit</code></pre>
+<pre><code>Random Forest 
+
+16002 samples
+   36 predictor
+   11 classes: &#39;Bcell&#39;, &#39;Keratinocyte1&#39;, &#39;Keratinocyte2&#39;, &#39;Langerhans&#39;, &#39;Macrophages&#39;, &#39;Neutrophil&#39;, &#39;Other&#39;, &#39;pDC&#39;, &#39;Tcytotoxic&#39;, &#39;Thelper&#39;, &#39;Vasculature&#39; 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 1 times) 
+Summary of sample sizes: 14403, 14403, 14402, 14400, 14400, 14404, ... 
+Resampling results across tuning parameters:
+
+  mtry  Accuracy   Kappa    
+   2    0.9707538  0.9567442
+   5    0.9813140  0.9724187
+   9    0.9840634  0.9764882
+  13    0.9846880  0.9774127
+  17    0.9851878  0.9781561
+  20    0.9850001  0.9778807
+  24    0.9851875  0.9781622
+  28    0.9853746  0.9784386
+  32    0.9855001  0.9786263
+  36    0.9852503  0.9782610
+
+Accuracy was used to select the optimal model using the largest value.
+The final value used for the model was mtry = 32.</code></pre>
+<p>We will now have a look at the accuracy measures over iterations. The only parameter that has been tuned is <code>mtry</code>.</p>
+<pre class="r"><code>ggplot(rffit) + 
+  geom_errorbar(data = rffit$results,
+                aes(ymin = Accuracy - AccuracySD,
+                    ymax = Accuracy + AccuracySD),
+                width = 0.4)</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/accuracy-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>We can also compute the confusion matrix:</p>
+<pre class="r"><code>confusionMatrix(rffit)</code></pre>
+<pre><code>Cross-Validated (10 fold, repeated 1 times) Confusion Matrix 
+
+(entries are percentual average cell counts across resamples)
+ 
+               Reference
+Prediction      Bcell Keratinocyte1 Keratinocyte2 Langerhans Macrophages
+  Bcell           0.1           0.0           0.0        0.0         0.0
+  Keratinocyte1   0.0          53.2           0.1        0.0         0.0
+  Keratinocyte2   0.0           0.0           5.0        0.0         0.0
+  Langerhans      0.0           0.0           0.0        2.1         0.0
+  Macrophages     0.0           0.0           0.0        0.0        12.7
+  Neutrophil      0.0           0.0           0.0        0.0         0.0
+  Other           0.0           0.0           0.0        0.0         0.0
+  pDC             0.0           0.0           0.0        0.0         0.0
+  Tcytotoxic      0.0           0.0           0.0        0.0         0.1
+  Thelper         0.0           0.0           0.0        0.0         0.1
+  Vasculature     0.0           0.0           0.0        0.0         0.0
+               Reference
+Prediction      Neutrophil Other  pDC Tcytotoxic Thelper Vasculature
+  Bcell                0.0   0.0  0.0        0.0     0.0         0.0
+  Keratinocyte1        0.0   0.0  0.0        0.0     0.0         0.0
+  Keratinocyte2        0.0   0.0  0.0        0.0     0.0         0.0
+  Langerhans           0.0   0.0  0.0        0.0     0.0         0.0
+  Macrophages          0.1   0.0  0.1        0.0     0.0         0.1
+  Neutrophil           6.0   0.0  0.0        0.0     0.0         0.0
+  Other                0.0   9.4  0.0        0.0     0.0         0.0
+  pDC                  0.0   0.0  0.4        0.0     0.0         0.0
+  Tcytotoxic           0.0   0.0  0.0        4.7     0.0         0.0
+  Thelper              0.0   0.0  0.0        0.0     1.5         0.0
+  Vasculature          0.0   0.0  0.0        0.0     0.0         3.4
+                            
+ Accuracy (average) : 0.9855</code></pre>
+<p>We will also look at the variable importance.</p>
+<pre class="r"><code>cur_varImp &lt;- varImp(rffit)
+plot(cur_varImp, top = 34)</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/variable-importance-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>Finally, we will validate the model using the test data.</p>
+<pre class="r"><code>cur_pred &lt;- predict(rffit, newdata = t(assay(test_sce, &quot;asinh&quot;)[rowData(sce)$good_marker,]))
+
+cm &lt;- confusionMatrix(data = cur_pred, reference = factor(test_sce$layer_1_gated))
+cm</code></pre>
+<pre><code>Confusion Matrix and Statistics
+
+               Reference
+Prediction      Bcell Keratinocyte1 Keratinocyte2 Langerhans Macrophages
+  Bcell             5             0             0          0           0
+  Keratinocyte1     0          3647             9          0           5
+  Keratinocyte2     0             1           340          0           0
+  Langerhans        0             4             0        146           0
+  Macrophages       2             2             0          0         871
+  Neutrophil        1             0             0          0           0
+  Other             0             0             5          0           1
+  pDC               2             0             0          0           0
+  Tcytotoxic        0             0             0          0           7
+  Thelper           1             1             0          0           7
+  Vasculature       1             1             0          0           2
+               Reference
+Prediction      Neutrophil Other  pDC Tcytotoxic Thelper Vasculature
+  Bcell                  0     0    0          0       0           0
+  Keratinocyte1          0     0    0          1       0           0
+  Keratinocyte2          0     2    0          0       0           0
+  Langerhans             0     0    0          1       0           0
+  Macrophages            7     5    4          3       3          10
+  Neutrophil           411     0    1          1       0           1
+  Other                  0   645    0          0       0           0
+  pDC                    0     0   27          1       0           0
+  Tcytotoxic             0     0    1        324       2           1
+  Thelper                0     0    1          3     101           3
+  Vasculature            0     0    0          0       0         232
+
+Overall Statistics
+                                          
+               Accuracy : 0.985           
+                 95% CI : (0.9818, 0.9877)
+    No Information Rate : 0.5336          
+    P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+                                          
+                  Kappa : 0.9778          
+                                          
+ Mcnemar&#39;s Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: Bcell Class: Keratinocyte1 Class: Keratinocyte2
+Sensitivity             0.4166667               0.9975              0.96045
+Specificity             1.0000000               0.9953              0.99954
+Pos Pred Value          1.0000000               0.9959              0.99125
+Neg Pred Value          0.9989777               0.9972              0.99785
+Prevalence              0.0017513               0.5336              0.05166
+Detection Rate          0.0007297               0.5323              0.04962
+Detection Prevalence    0.0007297               0.5344              0.05006
+Balanced Accuracy       0.7083333               0.9964              0.98000
+                     Class: Langerhans Class: Macrophages Class: Neutrophil
+Sensitivity                    1.00000             0.9754           0.98325
+Specificity                    0.99925             0.9940           0.99938
+Pos Pred Value                 0.96689             0.9603           0.99036
+Neg Pred Value                 1.00000             0.9963           0.99891
+Prevalence                     0.02131             0.1303           0.06100
+Detection Rate                 0.02131             0.1271           0.05998
+Detection Prevalence           0.02204             0.1324           0.06057
+Balanced Accuracy              0.99963             0.9847           0.99132
+                     Class: Other Class: pDC Class: Tcytotoxic Class: Thelper
+Sensitivity               0.98926   0.794118           0.97006        0.95283
+Specificity               0.99903   0.999560           0.99831        0.99763
+Pos Pred Value            0.99078   0.900000           0.96716        0.86325
+Neg Pred Value            0.99887   0.998974           0.99847        0.99926
+Prevalence                0.09515   0.004962           0.04874        0.01547
+Detection Rate            0.09413   0.003940           0.04729        0.01474
+Detection Prevalence      0.09501   0.004378           0.04889        0.01708
+Balanced Accuracy         0.99415   0.896839           0.98419        0.97523
+                     Class: Vasculature
+Sensitivity                     0.93927
+Specificity                     0.99939
+Pos Pred Value                  0.98305
+Neg Pred Value                  0.99773
+Prevalence                      0.03605
+Detection Rate                  0.03386
+Detection Prevalence            0.03444
+Balanced Accuracy               0.96933</code></pre>
+<pre class="r"><code>data.frame(cm$byClass) %&gt;%
+  mutate(class = sub(&quot;Class: &quot;, &quot;&quot;, rownames(cm$byClass))) %&gt;%
+  ggplot() + 
+  geom_point(aes(1 - Specificity, Sensitivity, 
+                 size = Detection.Rate,
+                 fill = class),
+             shape = 21) + 
+  scale_fill_manual(values = metadata(sce)$colour_vectors$layer_1) + 
+  theme_bw() + 
+  ylab(&quot;Sensitivity (TPR)&quot;) +
+  xlab(&quot;1 - Specificity (FPR)&quot;)</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/model-testing-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>We will also observe the distribution of classification probabilities per image and class:</p>
+<pre class="r"><code>cur_pred &lt;- predict(rffit, newdata = t(assay(test_sce, &quot;asinh&quot;)[rowData(sce)$good_marker,]), 
+                    type = &quot;prob&quot;)
+
+cur_pred %&gt;%
+  mutate(class = test_sce$layer_1_gated,
+         image = test_sce$ImageNumber) %&gt;%
+  reshape2::melt(id.vars = c(&quot;class&quot;, &quot;image&quot;), variable.name = &quot;celltype&quot;, value.name = &quot;probability&quot;) %&gt;%
+  filter(class == celltype) %&gt;%
+  ggplot() +
+  geom_boxplot(aes(interaction(image), probability), outlier.size = 0.5) +
+    facet_wrap(. ~ class) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/prediciton-probability-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>This plot shows the median probability for each image and class.</p>
+</div>
+</div>
+</div>
+<div id="predicting-new-data" class="section level1">
+<h1>Predicting new data</h1>
+<p>Finally, we will predict the labels of all other cells. For cell-type classification, we will use the method that was trained across all images.</p>
+<pre class="r"><code>unlab_sce &lt;- sce[,sce$layer_1_gated == &quot;unlabelled&quot;]
+start = Sys.time()
+cell_labels.class &lt;- as.character(predict.train(rffit, 
+                       newdata = t(assay(unlab_sce[rowData(sce)$good_marker,], &quot;asinh&quot;)), 
+                       type = &quot;raw&quot;))
+cell_labels.prob &lt;- predict.train(rffit, 
+                       newdata = t(assay(unlab_sce[rowData(sce)$good_marker,], &quot;asinh&quot;)), 
+                       type = &quot;prob&quot;)
+end = Sys.time()
+print(end-start)</code></pre>
+<pre><code>Time difference of 1.930112 secs</code></pre>
+<p>Store predictions in SCE object. We will not overwrite the labels of the already labelled cells.</p>
+<pre class="r"><code>cell_labels &lt;- sce$layer_1_gated
+cell_labels[colnames(unlab_sce)] &lt;- cell_labels.class
+
+sce$celltype_classified &lt;- cell_labels</code></pre>
+</div>
+<div id="visualization" class="section level1">
+<h1>Visualization</h1>
+<p>Here, we will visualize the predicted cell-types and their associated classification probabilities.</p>
+<div id="using-reduced-dimensions" class="section level2">
+<h2>Using reduced dimensions</h2>
+<pre class="r"><code>dittoDimPlot(sce, var = &quot;layer_1_gated&quot;, reduction.use = &quot;UMAP&quot;, size = 0.75, 
+              color.panel = metadata(sce)$colour_vectors$layer_1, main = &quot;Cell types gated&quot;)</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/UMAP_celltypes_gated_cytomapper-1.png" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dittoDimPlot(sce, var= &quot;celltype_classified&quot;, reduction.use = &quot;UMAP&quot;, size = 0.75, 
+              color.panel = metadata(sce)$colour_vectors$layer_1, main = &quot;Cell types classified&quot;) </code></pre>
+<p><img src="figure/04_celltype_classification.rmd/UMAP_celltypes_classified-1.png" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="probabilities-for-all-celltypes" class="section level2">
+<h2>Probabilities for all celltypes</h2>
+<pre class="r"><code>for (i in unique(cell_labels.class)) {
+  cur_df &lt;- data.frame(UMAP1 = reducedDim(unlab_sce, &quot;UMAP&quot;)[,1],
+       UMAP2 = reducedDim(unlab_sce, &quot;UMAP&quot;)[,2],
+       prob = cell_labels.prob[,i],
+       class = cell_labels.class == i)
+  
+  p &lt;- ggplot() + geom_point(aes(UMAP1, UMAP2), data = cur_df[!cur_df$class,],
+                       color = &quot;gray&quot;) +
+    geom_point(aes(UMAP1, UMAP2, color = prob), data = cur_df[cur_df$class,],
+             size = 0.5)+
+    scale_colour_viridis(name = paste0(i, &quot; probability&quot;))
+  
+  plot(p)
+}</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-1.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-2.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-3.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-4.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-5.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-6.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-7.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-8.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-9.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-10.png" width="672" style="display: block; margin: auto;" /><img src="figure/04_celltype_classification.rmd/UMAP_probabilites_celltypes-11.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualization-of-marker-expression" class="section level2">
+<h2>Visualization of marker expression</h2>
+<p>Finally, we will visualize the marker expression per cell type using all the celltypes generated in this workflow via gating and classification</p>
+<pre class="r"><code>agr_sce &lt;- aggregateAcrossCells(sce, ids = colData(sce)[,c(&quot;ImageNumber&quot;, &quot;celltype_classified&quot;)], 
+                                statistics =&quot;mean&quot;)
+assay(agr_sce, &quot;asinh&quot;) &lt;- asinh(counts(agr_sce))
+
+colnames(agr_sce) &lt;- paste0(agr_sce$ImageNumber, &quot;_&quot;, agr_sce$celltype_classified)
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;), 
+            order.by = &quot;celltype_classified&quot;, cluster_rows = FALSE,
+            scale = &quot;none&quot;, heatmap.colors = viridis(100), 
+            annotation_colors = list(celltype_classified = metadata(sce)$colour_vectors$layer_1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20image%20and%20celltype_classified-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Centered and scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;), 
+            cluster_rows = TRUE,
+            annotation_colors = list(celltype_classified = metadata(sce)$colour_vectors$layer_1),
+            heatmap.colors = colorRampPalette(c(&quot;dark blue&quot;, &quot;white&quot;, &quot;dark red&quot;))(100),
+            breaks = seq(-4,4, length.out = 101))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20image%20and%20celltype_classified-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>agr_sce &lt;- aggregateAcrossCells(sce, ids = colData(sce)[,c( &quot;celltype_classified&quot;)], 
+                                average = TRUE)</code></pre>
+<pre><code>Warning: &#39;average=&#39; is deprecated, use &#39;statistics=&#39; instead</code></pre>
+<pre class="r"><code>assay(agr_sce, &quot;asinh&quot;) &lt;- asinh(counts(agr_sce))
+
+colnames(agr_sce) &lt;- paste0(agr_sce$ImageNumber, &quot;_&quot;, agr_sce$celltype_classified)
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;), 
+            order.by = &quot;celltype_classified&quot;, cluster_rows = FALSE,
+            scale = &quot;none&quot;, heatmap.colors = viridis(100), 
+            annotation_colors = list(celltype = metadata(sce)$colour_vectors$layer_1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20celltype_classified-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Centered and scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;),
+            annotation_colors = list(celltype_classified = metadata(sce)$colour_vectors$layer_1),
+            heatmap.colors = colorRampPalette(c(&quot;dark blue&quot;, &quot;white&quot;, &quot;dark red&quot;))(100),
+            breaks = seq(-4,4, length.out = 101))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20celltype_classified-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>dittoBarPlot(sce,var = &quot;celltype_classified&quot;,group.by = &quot;sample&quot;,
+             color.panel = (metadata(sce)$colour_vectors$layer_1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/celltypes%20per%20sample-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><strong>NHS_1 sample has too many Tcytotoxic cells and according to Dermatologists is not representative of a “normal skin”. It will be excluded downstream. DRESS_4 contains mostly keratinocytes and a very thick epidermal layer. this image will also be excluded downstream in the summary plot generation</strong></p>
+</div>
+</div>
+<div id="sub-clustering-within-each-cell-type" class="section level1">
+<h1>Sub-clustering within each cell-type</h1>
+<p>After identifying the major classes of immune cells, we can now sub-cluster each cell-type.</p>
+<div id="select-markers" class="section level2">
+<h2>Select markers</h2>
+<p>For this, we will select markers that are expressed in the individual classes.</p>
+<pre class="r"><code># Select markers
+rownames(sce)</code></pre>
+<pre><code> [1] &quot;HistoneH3&quot; &quot;SMA&quot;       &quot;CD7&quot;       &quot;Filaggrin&quot; &quot;HLADR&quot;     &quot;CD370&quot;    
+ [7] &quot;CD27&quot;      &quot;CD16&quot;      &quot;CD163&quot;     &quot;Langerin&quot;  &quot;CD11b&quot;     &quot;CD68&quot;     
+[13] &quot;CD31&quot;      &quot;CD3&quot;       &quot;DC_LAMP&quot;   &quot;CD11c&quot;     &quot;CD1c&quot;      &quot;CD69&quot;     
+[19] &quot;CD134&quot;     &quot;GrzB&quot;      &quot;CD45RA&quot;    &quot;STING&quot;     &quot;CD45RO&quot;    &quot;FoxP3&quot;    
+[25] &quot;CD20&quot;      &quot;CLA&quot;       &quot;CD8&quot;       &quot;CD57&quot;      &quot;Ki67&quot;      &quot;DP2&quot;      
+[31] &quot;CD40&quot;      &quot;CD4&quot;       &quot;CD14&quot;      &quot;E-cad&quot;     &quot;CD303&quot;     &quot;CD206&quot;    
+[37] &quot;DNA1&quot;      &quot;DNA2&quot;      &quot;MPO&quot;      </code></pre>
+<pre class="r"><code>marker_list &lt;- list()
+marker_list$Keratinocyte1 &lt;- c(&quot;E-cad&quot;,  &quot;Filaggrin&quot;,&quot;Ki67&quot;)
+marker_list$Keratinocyte2 &lt;- c(&quot;E-cad&quot;,  &quot;Filaggrin&quot;,&quot;Ki67&quot;)
+marker_list$Neutrophil &lt;- c(&quot;CD16&quot;, &quot;CD11b&quot;, &quot;GrzB&quot;, &quot;CD45RA&quot;, &quot;CD45RO&quot;, &quot;CLA&quot;, &quot;MPO&quot;,&quot;CD134&quot;)
+marker_list$Langerhans &lt;- c(&quot;Langerin&quot;, &quot;HLADR&quot;, &quot;E-cad&quot;, &quot;DC_LAMP&quot;, &quot;CD370&quot;, &quot;CD11c&quot;,&quot;CD11b&quot;)
+marker_list$Tcytotoxic &lt;- c(&quot;CD57&quot;,&quot;CD3&quot;,&quot;CD4&quot;,&quot;CD7&quot;, &quot;CD8&quot;, &quot;FoxP3&quot;, &quot;CD45RA&quot;, &quot;CD45RO&quot;, &quot;CD134&quot;, &quot;GrzB&quot;, &quot;Ki67&quot;, &quot;CD69&quot;, &quot;CD27&quot;,&quot;CLA&quot;)
+marker_list$Thelper &lt;- c(&quot;CD3&quot;,&quot;CD4&quot;,&quot;CD7&quot;, &quot;CD8&quot;, &quot;FoxP3&quot;, &quot;CD45RA&quot;, &quot;CD45RO&quot;, &quot;CD134&quot;, &quot;GrzB&quot;, &quot;Ki67&quot;, &quot;CD69&quot;, &quot;CD27&quot;,&quot;CLA&quot;)
+marker_list$Bcell &lt;- c(&quot;CD20&quot;, &quot;CD27&quot;, &quot;CD40&quot;, &quot;HLADR&quot;,&quot;CD45RA&quot;,&quot;CD45RO&quot;)
+marker_list$pDC &lt;- c(&quot;CD303&quot;, &quot;HLADR&quot;,&quot;GrzB&quot;)
+marker_list$Endothelial &lt;- c(&quot;CD31&quot;,&quot;SMA&quot;)
+marker_list$Macrophages &lt;- c(&quot;CD1c&quot;,&quot;CD11b&quot;,&quot;CD11c&quot;,&quot;CD16&quot;,&quot;CD68&quot;,&quot;HLADR&quot;,&quot;CD163&quot;,&quot;CD206&quot;,&quot;CLA&quot;,&quot;CD14&quot;,&quot;CD40&quot;,&quot;STING&quot;,&quot;DC_LAMP&quot;,&quot;CD370&quot;)
+marker_list$DCLamp &lt;- c(&quot;CD1c&quot;,&quot;CD11b&quot;,&quot;CD11c&quot;,&quot;CD16&quot;,&quot;CD68&quot;,&quot;HLADR&quot;,&quot;CD163&quot;,&quot;CD206&quot;,&quot;CLA&quot;,&quot;CD14&quot;,&quot;CD40&quot;,&quot;STING&quot;,&quot;DC_LAMP&quot;,&quot;CD370&quot;)
+marker_list$other &lt;- rownames(sce)</code></pre>
+</div>
+<div id="sub-cluster" class="section level2">
+<h2>Sub-cluster</h2>
+<p>Next, we use <code>Rphenograph</code> to cluster cells within each cell-type using the markers selected above. These sub-clusters will be stored in a new <code>colData</code> entry.</p>
+<pre class="r"><code>library(CATALYST)
+## the FlowSOM function from CATALYST needs an another column in the rowData of the sce to work properly:
+rowData(sce)$marker_class &lt;- &quot;state&quot;
+
+# vector for clustering
+fs_clustering &lt;- vector(length = ncol(sce))
+
+# create the &quot;exprs&quot; slot in the assay data (needed for CATALYST)
+assay(sce, &quot;exprs&quot;) &lt;- assay(sce,&quot;asinh&quot;)
+
+# Macrophage, Bcells, Thelper, Tcytotoxic, Tother and BnT cells will be clustered for a total of 6 clustes each
+set.seed(12345)
+for(i in c(&quot;Other&quot;)){
+  cur_sce &lt;- sce[,sce$celltype_classified == i]
+  
+  cur_sce &lt;- CATALYST::cluster(cur_sce,features = marker_list[i][[1]],ydim = 2,xdim = 3,maxK =4)
+  
+  fs_clustering[sce$celltype_classified == i] &lt;- cur_sce$cluster_id
+}
+
+# pDCs and Neutrophils will be clustered to 4 clusteres
+for(i in c(&quot;Neutrophil&quot;,&quot;Langerhans&quot;,&quot;Tcytotoxic&quot;,&quot;Thelper&quot;,&quot;Vasculature&quot;,&quot;Keratinocyte1&quot;)){
+  cur_sce &lt;- sce[,sce$celltype_classified == i]
+  
+  cur_sce &lt;- CATALYST::cluster(cur_sce,features = marker_list[i][[1]],ydim = 2,xdim = 2,maxK = 3)
+  
+  fs_clustering[sce$celltype_classified == i] &lt;- cur_sce$cluster_id
+}
+
+
+# pDCs and Neutrophils will be clustered to 4 clusteres
+for(i in c(&quot;Macrophages&quot;)){
+  cur_sce &lt;- sce[,sce$celltype_classified == i]
+  
+  cur_sce &lt;- CATALYST::cluster(cur_sce,features = marker_list[i][[1]],ydim = 2,xdim = 2,maxK = 3)
+  
+  fs_clustering[sce$celltype_classified == i] &lt;- cur_sce$cluster_id
+}
+
+# Save in SCE object
+colData(sce)$celltype_classified_clustering_FS &lt;- as.factor(fs_clustering)
+
+sce$celltype_classified_clustering_FS &lt;- paste0(sce$celltype_classified, &quot;_&quot;, sce$celltype_classified_clustering_FS)</code></pre>
+<pre class="r"><code>agr_sce &lt;- aggregateAcrossCells(sce, ids = colData(sce)[,c(&quot;celltype_classified_clustering_FS&quot;)], 
+                                statistics = &quot;mean&quot;)
+assay(agr_sce, &quot;asinh&quot;) &lt;- asinh(counts(agr_sce))
+
+colnames(agr_sce) &lt;- paste0(agr_sce$ImageNumber, &quot;_&quot;, agr_sce$celltype_classified_clustering_FS)
+
+# Non-scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;,&quot;celltype_classified_clustering_FS&quot;), 
+            order.by = &quot;celltype_classified&quot;, cluster_rows = FALSE,
+            scale = &quot;none&quot;, heatmap.colors = viridis(100), 
+            annotation_colors = list(celltype_classified = metadata(sce)$colour_vectors$layer_1))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20celltype_classified_clustered-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Centered and scaled
+dittoHeatmap(agr_sce, assay = &quot;asinh&quot;,
+            annot.by = c(&quot;celltype_classified&quot;,&quot;celltype_classified_clustering_FS&quot;),
+            annotation_colors = list(celltype_classified = metadata(sce)$colour_vectors$layer_1),
+            heatmap.colors = colorRampPalette(c(&quot;dark blue&quot;, &quot;white&quot;, &quot;dark red&quot;))(100),
+            breaks = seq(-3,3, length.out = 101))</code></pre>
+<p><img src="figure/04_celltype_classification.rmd/heatmap-visualization%20per%20celltype_classified_clustered-2.png" width="1440" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="save-rds" class="section level1">
+<h1>Save RDS</h1>
+<pre class="r"><code>saveRDS(sce, &quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/sce_protein.rds&quot;)
+
+# create data frame with class and probabilities and save as csv.
+layer_1_dat &lt;- as.data.frame(cell_labels.prob)
+layer_1_dat$class &lt;- cell_labels.class
+
+write.csv(layer_1_dat, file = &quot;~/bbvolume/Data/Dermatology/covid_skin_rash/Rout/data/layer_1_classification.csv&quot;)</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 18.04.4 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] CATALYST_1.14.0             doParallel_1.0.16          
+ [3] iterators_1.0.13            foreach_1.5.1              
+ [5] viridis_0.5.1               viridisLite_0.3.0          
+ [7] dittoSeq_1.2.2              forcats_0.5.0              
+ [9] stringr_1.4.0               dplyr_1.0.2                
+[11] purrr_0.3.4                 readr_1.4.0                
+[13] tidyr_1.1.2                 tibble_3.0.4               
+[15] tidyverse_1.3.0             scater_1.18.3              
+[17] SingleCellExperiment_1.12.0 SummarizedExperiment_1.20.0
+[19] Biobase_2.50.0              GenomicRanges_1.42.0       
+[21] GenomeInfoDb_1.26.1         IRanges_2.24.0             
+[23] S4Vectors_0.28.0            BiocGenerics_0.36.0        
+[25] MatrixGenerics_1.2.0        matrixStats_0.57.0         
+[27] caret_6.0-86                ggplot2_3.3.2              
+[29] lattice_0.20-41             workflowr_1.6.2            
+
+loaded via a namespace (and not attached):
+  [1] utf8_1.1.4                  tidyselect_1.1.0           
+  [3] grid_4.0.2                  BiocParallel_1.24.1        
+  [5] Rtsne_0.15                  pROC_1.16.2                
+  [7] aws.signature_0.6.0         flowCore_2.2.0             
+  [9] munsell_0.5.0               codetools_0.2-16           
+ [11] withr_2.3.0                 colorspace_2.0-0           
+ [13] knitr_1.30                  rstudioapi_0.13            
+ [15] labeling_0.4.2              git2r_0.27.1               
+ [17] GenomeInfoDbData_1.2.4      farver_2.0.3               
+ [19] pheatmap_1.0.12             flowWorkspace_4.2.0        
+ [21] rprojroot_2.0.2             TH.data_1.0-10             
+ [23] vctrs_0.3.5                 generics_0.1.0             
+ [25] ipred_0.9-9                 xfun_0.19                  
+ [27] randomForest_4.6-14         R6_2.5.0                   
+ [29] ggbeeswarm_0.6.0            clue_0.3-58                
+ [31] rsvd_1.0.3                  locfit_1.5-9.4             
+ [33] bitops_1.0-6                DelayedArray_0.16.0        
+ [35] assertthat_0.2.1            promises_1.1.1             
+ [37] scales_1.1.1                multcomp_1.4-15            
+ [39] nnet_7.3-14                 beeswarm_0.2.3             
+ [41] gtable_0.3.0                beachmat_2.6.2             
+ [43] Cairo_1.5-12.2              sandwich_3.0-0             
+ [45] RProtoBufLib_2.2.0          timeDate_3043.102          
+ [47] rlang_0.4.9                 GlobalOptions_0.1.2        
+ [49] splines_4.0.2               ModelMetrics_1.2.2.2       
+ [51] hexbin_1.28.1               broom_0.7.2                
+ [53] abind_1.4-5                 yaml_2.2.1                 
+ [55] reshape2_1.4.4              modelr_0.1.8               
+ [57] backports_1.2.0             httpuv_1.5.4               
+ [59] RBGL_1.66.0                 tools_4.0.2                
+ [61] lava_1.6.8.1                ellipsis_0.3.1             
+ [63] RColorBrewer_1.1-2          ggridges_0.5.2             
+ [65] Rcpp_1.0.5                  plyr_1.8.6                 
+ [67] base64enc_0.1-3             sparseMatrixStats_1.2.0    
+ [69] zlibbioc_1.36.0             RCurl_1.98-1.2             
+ [71] FlowSOM_1.22.0              rpart_4.1-15               
+ [73] GetoptLong_1.0.4            cowplot_1.1.0              
+ [75] zoo_1.8-8                   haven_2.3.1                
+ [77] ggrepel_0.8.2               cluster_2.1.0              
+ [79] fs_1.5.0                    magrittr_2.0.1             
+ [81] ncdfFlow_2.36.0             data.table_1.13.2          
+ [83] openxlsx_4.2.3              circlize_0.4.11            
+ [85] reprex_0.3.0                mvtnorm_1.1-1              
+ [87] hms_0.5.3                   evaluate_0.14              
+ [89] XML_3.99-0.5                rio_0.5.16                 
+ [91] jpeg_0.1-8.1                readxl_1.3.1               
+ [93] gridExtra_2.3               shape_1.4.5                
+ [95] ggcyto_1.18.0               compiler_4.0.2             
+ [97] crayon_1.3.4                htmltools_0.5.0            
+ [99] later_1.1.0.1               RcppParallel_5.0.2         
+[101] lubridate_1.7.9.2           aws.s3_0.3.21              
+[103] DBI_1.1.0                   dbplyr_2.0.0               
+[105] ComplexHeatmap_2.6.2        MASS_7.3-53                
+[107] Matrix_1.2-18               car_3.0-10                 
+[109] cli_2.2.0                   gower_0.2.2                
+[111] igraph_1.2.6                pkgconfig_2.0.3            
+[113] foreign_0.8-80              scuttle_1.0.3              
+[115] recipes_0.1.15              xml2_1.3.2                 
+[117] vipor_0.4.5                 XVector_0.30.0             
+[119] prodlim_2019.11.13          drc_3.0-1                  
+[121] rvest_0.3.6                 digest_0.6.27              
+[123] tsne_0.1-3                  ConsensusClusterPlus_1.54.0
+[125] graph_1.68.0                rmarkdown_2.5              
+[127] cellranger_1.1.0            edgeR_3.32.0               
+[129] DelayedMatrixStats_1.12.1   curl_4.3                   
+[131] gtools_3.8.2                rjson_0.2.20               
+[133] lifecycle_0.2.0             nlme_3.1-150               
+[135] jsonlite_1.7.1              carData_3.0-4              
+[137] BiocNeighbors_1.8.1         limma_3.46.0               
+[139] fansi_0.4.1                 pillar_1.4.7               
+[141] plotrix_3.7-8               httr_1.4.2                 
+[143] survival_3.2-7              glue_1.4.2                 
+[145] zip_2.1.1                   png_0.1-7                  
+[147] Rgraphviz_2.34.0            nnls_1.4                   
+[149] class_7.3-17                stringi_1.5.3              
+[151] BiocSingular_1.6.0          CytoML_2.2.1               
+[153] latticeExtra_0.6-29         cytolib_2.2.0              
+[155] e1071_1.7-4                 irlba_2.3.3                </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
