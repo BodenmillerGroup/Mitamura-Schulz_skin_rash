@@ -1,5 +1,5 @@
 ---
-title: "CLA subtypes"
+title: "Plots for manuscript"
 author: "daniels"
 date: "7 9 2020"
 output: html_document
