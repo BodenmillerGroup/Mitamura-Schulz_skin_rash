@@ -11,4 +11,4 @@ The corresponding scripts and cell profiler pipelines can be found in the "prepr
 
 All data analysis downstream of single cell generation was performed in R.
 
-The raw data, the single cell data, the annotated files for cell type classification and the SingleCellObject (https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) have been deposited on Zenodo at the following link:
+The raw data, the single cell data, the annotated files for cell type classification and the SingleCellObject (https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) have been deposited on Zenodo at the following link: https://doi.org/10.5281/zenodo.5036924
